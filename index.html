@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerador de Nota de Falecimento</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Georgia', 'Times New Roman', serif;
+      background: #2a2a2a;
+      color: #333;
+      min-height: 100vh;
+      padding: 0;
+    }
+    .app-header {
+      text-align: center;
+      color: #eee;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #444;
+    }
+    .app-header h1 { font-size: 1.25rem; font-weight: normal; margin: 0 0 0.25rem 0; }
+    .app-header p { margin: 0; font-size: 0.85rem; color: #999; }
+    .app-layout {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0;
+      min-height: calc(100vh - 80px);
+    }
+    .form-panel {
+      width: 320px;
+      min-width: 280px;
+      padding: 1.25rem;
+      background: #333;
+      border-right: 1px solid #444;
+      flex-shrink: 0;
+    }
+    .form-panel h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #eee;
+      margin: 0 0 1rem 0;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid #555;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      color: #aaa;
+      margin-bottom: 0.35rem;
+    }
+    .form-group input[type="text"],
+    .form-group input[type="file"],
+    .form-group textarea {
+      width: 100%;
+      padding: 0.5rem 0.6rem;
+      border: 1px solid #555;
+      border-radius: 4px;
+      background: #444;
+      color: #fff;
+      font: inherit;
+      font-size: 0.9rem;
+    }
+    .form-group textarea {
+      resize: vertical;
+      min-height: 72px;
+    }
+    .form-group input[type="file"] { padding: 0.35rem 0; cursor: pointer; }
+    .form-group .hint { font-size: 0.75rem; color: #777; margin-top: 0.25rem; }
+    .form-actions {
+      margin-top: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .form-actions button {
+      padding: 0.55rem 1rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+    .form-actions .btn-primary { background: #4a7c59; color: #fff; }
+    .form-actions .btn-primary:hover { background: #5a9c69; }
+    .form-actions .btn-secondary { background: #555; color: #eee; }
+    .form-actions .btn-secondary:hover { background: #666; }
+    .preview-panel {
+      flex: 1;
+      min-width: 300px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #2a2a2a;
+    }
+    .preview-panel .preview-label {
+      color: #999;
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+    }
+    .canvas-wrap {
+      max-width: 100%;
+      width: 100%;
+      max-width: 520px;
+      position: relative;
+      background: #1a1a1a;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .canvas-inner {
+      position: relative;
+      width: 100%;
+      padding-bottom: 125%;
+    }
+    .layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    /* Camada 1: foto atrás do template (só aparece na área do quadro) */
+    .layer-photo-back {
+      z-index: 0;
+      pointer-events: none;
+    }
+    .layer-photo-back .photo-back {
+      position: absolute;
+      left: 29%;
+      top: 29%;
+      width: 42%;
+      height: 42%;
+      overflow: hidden;
+    }
+    .layer-photo-back .photo-back img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      display: block;
+      transform-origin: center center;
+    }
+    /* Camada 2: template por cima (PNG com vazado no meio; a foto atrás aparece no vazado) */
+    .layer-template {
+      z-index: 1;
+      pointer-events: none;
+    }
+    .layer-template img {
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+      display: block;
+    }
+    /* Quadro pontilhado (apenas visual; área da foto) */
+    .layer-photo {
+      z-index: 2;
+    }
+    .toolbar-sep { color: #999; margin: 0 0.35rem; font-size: 0.85rem; }
+    .toolbar input[type="range"] { width: 80px; vertical-align: middle; }
+    .layer-photo .photo-wrap {
+      position: absolute;
+      left: 29%;
+      top: 29%;
+      width: 42%;
+      height: 42%;
+      border: 2px dotted rgba(0,0,0,0.6);
+      box-sizing: border-box;
+      background: transparent;
+      pointer-events: none;
+    }
+    .layer-photo .photo-drag-overlay {
+      position: absolute;
+      left: 29%;
+      top: 29%;
+      width: 42%;
+      height: 42%;
+      cursor: move;
+      z-index: 2;
+      pointer-events: auto;
+    }
+    .layer-photo .photo-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(0,0,0,0.35);
+      font-size: 0.75rem;
+      text-align: center;
+      padding: 0.5rem;
+    }
+    /* Elementos editáveis (textos por cima de tudo) */
+    .layer-editable {
+      z-index: 3;
+      pointer-events: none;
+    }
+    .layer-editable > * { pointer-events: auto; }
+    .editable {
+      position: absolute;
+      cursor: move;
+      user-select: none;
+      padding: 0.25rem 0.5rem;
+      min-width: 80px;
+      border: 1px solid transparent;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .editable:hover, .editable.dragging {
+      border-color: rgba(255,255,255,0.6);
+      background: rgba(255,255,255,0.08);
+    }
+    .editable .label {
+      font-size: 0.65rem;
+      color: #888;
+      margin-bottom: 0.15rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .editable .preview-text {
+      color: #fff;
+      font-size: inherit;
+      line-height: 1.3;
+      min-height: 1.2em;
+      word-break: break-word;
+    }
+    .editable .char-count {
+      font-size: 0.6rem;
+      color: #666;
+      margin-top: 0.1rem;
+    }
+    .editable .char-count.at-limit { color: #c66; }
+    .hint .at-limit { color: #c66; }
+    /* Posições iniciais baseadas no template */
+    .el-frase {
+      left: 8%;
+      top: 72%;
+      width: 20%;
+      max-width: 180px;
+    }
+    .el-nome {
+      left: 28%;
+      top: 55%;
+      width: 44%;
+    }
+    .el-nascimento {
+      left: 42%;
+      top: 88%;
+      width: 22%;
+    }
+    .el-falecimento {
+      left: 42%;
+      top: 93%;
+      width: 22%;
+    }
+    .canvas-inner.projeto-finalizado .editable {
+      cursor: default;
+    }
+    .canvas-inner.projeto-finalizado .editable:hover {
+      background: transparent;
+      border-color: transparent;
+    }
+    .btn-export {
+      margin-top: 1rem;
+      padding: 0.6rem 1.2rem;
+      background: #4a7c59;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    .btn-export:hover { background: #5a9c69; }
+    .zoom-row { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.35rem; }
+    .zoom-row input[type="range"] { flex: 1; min-width: 0; }
+    .zoom-row span { color: #ccc; font-size: 0.9rem; min-width: 2.5rem; }
+    .label-inline { font-size: 0.85rem; color: #aaa; margin-top: 0.5rem; margin-bottom: 0.2rem; display: block; }
+  </style>
+</head>
+<body>
+  <div class="app-header">
+    <h1>Gerador de Nota de Falecimento</h1>
+    <p>Preencha o formulário ao lado; o preview atualiza em tempo real. Arraste os textos no preview para posicionar.</p>
+  </div>
+  <div class="app-layout">
+    <aside class="form-panel">
+      <h2>Dados da nota</h2>
+      <div class="form-group">
+        <label>Foto</label>
+        <input type="file" id="photoInput" accept="image/*">
+        <div class="hint">Imagem que aparece no espaço vazado do template.</div>
+      </div>
+      <div class="form-group">
+        <label>Zoom da foto</label>
+        <div class="zoom-row">
+          <input type="range" id="photoZoom" min="1" max="2" step="0.1" value="1" title="Zoom">
+          <span id="photoZoomValue">100%</span>
+        </div>
+        <div class="hint">Acima de 100% permite arrastar a foto dentro do quadro.</div>
+      </div>
+      <div class="form-group">
+        <label>Frase (máx. 90 caracteres, sem números)</label>
+        <textarea id="formFrase" rows="3" maxlength="90" placeholder="Ex.: Uma vida de amor e dedicação..."></textarea>
+        <div class="hint"><span id="charCount">0</span>/90</div>
+        <div id="fraseWidthGroup" style="display:none;">
+          <label class="label-inline">Largura da frase no preview</label>
+          <div class="zoom-row">
+            <input type="range" id="fraseWidth" min="14" max="32" value="20" title="Largura do bloco da frase no preview (%)">
+            <span id="fraseWidthValue">20%</span>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Nome do falecido (máx. 40 caracteres, sem números)</label>
+        <input type="text" id="formNome" maxlength="40" placeholder="Ex.: Maria da Silva">
+        <div class="hint"><span id="nomeCharCount">0</span>/40</div>
+        <div id="nomeWidthGroup" style="display:none;">
+          <label class="label-inline">Largura do nome no preview</label>
+          <div class="zoom-row">
+            <input type="range" id="nomeWidth" min="20" max="55" value="44" title="Largura do bloco do nome no preview (%)">
+            <span id="nomeWidthValue">44%</span>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Data de nascimento</label>
+        <input type="text" id="formNascimento" placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Data de falecimento</label>
+        <input type="text" id="formFalecimento" placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric" autocomplete="off">
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-primary" id="btnExport">Exportar como imagem</button>
+        <button type="button" class="btn-secondary" id="btnConfigLayout" title="Permite arrastar os textos e ajustar larguras; depois use Baixar layout padrão e substitua o arquivo default-layout.json" style="display:none;">Configurar layout</button>
+        <button type="button" class="btn-secondary" id="btnDownloadLayout" title="Baixe e coloque o arquivo na mesma pasta do index.html para que outras máquinas/navegadores usem as mesmas posições" style="display:none;">Baixar layout padrão</button>
+      </div>
+    </aside>
+    <section class="preview-panel">
+      <div class="preview-label" id="previewLabel">Preview</div>
+      <div class="canvas-wrap">
+    <div class="canvas-inner">
+      <!-- Camada 1: foto atrás (só visível na área do quadro) -->
+      <div class="layer layer-photo-back">
+        <div class="photo-back" id="photoBack">
+          <img id="photoImg" src="" alt="" style="display:none;">
+        </div>
+      </div>
+      <!-- Camada 2: template (PNG com espaço vazado no meio; foto atrás aparece no vazado) -->
+      <div class="layer layer-template">
+        <img id="templateImg" src="Template nota de falecimento.png" alt="Template">
+      </div>
+      <!-- Quadro pontilhado + overlay para arrastar a foto -->
+      <div class="layer layer-photo">
+        <div class="photo-wrap" id="photoWrap">
+          <div class="photo-placeholder" id="photoPlaceholder">Inserir foto acima</div>
+        </div>
+        <div class="photo-drag-overlay" id="photoDragOverlay" title="Zoom acima de 100% permite arrastar a foto dentro do quadro"></div>
+      </div>
+      <!-- Camada 3: textos por cima (conteúdo vindo do formulário) -->
+      <div class="layer layer-editable">
+        <div class="editable el-frase" id="elFrase" data-draggable>
+          <div class="preview-text" id="previewFrase"></div>
+        </div>
+        <div class="editable el-nome" id="elNome" data-draggable>
+          <div class="preview-text" id="previewNome"></div>
+        </div>
+        <div class="editable el-nascimento" id="elNascimento" data-draggable>
+          <div class="preview-text" id="previewNascimento"></div>
+        </div>
+        <div class="editable el-falecimento" id="elFalecimento" data-draggable>
+          <div class="preview-text" id="previewFalecimento"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      const STORAGE_KEY = 'nota-falecimento-state';
+      const DEFAULT_LAYOUT_KEY = 'nota-falecimento-default-layout';
+      const FIXED_POSITIONS_KEY = 'nota-falecimento-fixed-pos';
+      const PHRASE_LIMIT = 90;
+      const NOME_LIMIT = 40;
+      const container = document.querySelector('.canvas-inner');
+      const photoWrap = document.getElementById('photoWrap');
+      const photoPlaceholder = document.getElementById('photoPlaceholder');
+      const photoImg = document.getElementById('photoImg');
+      const photoInput = document.getElementById('photoInput');
+      const formFrase = document.getElementById('formFrase');
+      const formNome = document.getElementById('formNome');
+      const formNascimento = document.getElementById('formNascimento');
+      const formFalecimento = document.getElementById('formFalecimento');
+      const charCountEl = document.getElementById('charCount');
+      const previewFrase = document.getElementById('previewFrase');
+      const previewNome = document.getElementById('previewNome');
+      const previewNascimento = document.getElementById('previewNascimento');
+      const previewFalecimento = document.getElementById('previewFalecimento');
+      const photoBack = document.getElementById('photoBack');
+      const btnResetPos = document.getElementById('btnResetPos');
+      const btnFixarPos = document.getElementById('btnFixarPos');
+      const btnFinalizar = document.getElementById('btnFinalizar');
+      const btnReabrir = document.getElementById('btnReabrir');
+      const btnExport = document.getElementById('btnExport');
+      const btnConfigLayout = document.getElementById('btnConfigLayout');
+      const btnDownloadLayout = document.getElementById('btnDownloadLayout');
+      const previewLabel = document.getElementById('previewLabel');
+      const fraseWidthGroup = document.getElementById('fraseWidthGroup');
+      const nomeWidthGroup = document.getElementById('nomeWidthGroup');
+      const templateImgEl = document.getElementById('templateImg');
+      const photoZoomInput = document.getElementById('photoZoom');
+      const photoZoomValueEl = document.getElementById('photoZoomValue');
+      const photoDragOverlay = document.getElementById('photoDragOverlay');
+      const fraseWidthInput = document.getElementById('fraseWidth');
+      const fraseWidthValueEl = document.getElementById('fraseWidthValue');
+      const nomeWidthInput = document.getElementById('nomeWidth');
+      const nomeWidthValueEl = document.getElementById('nomeWidthValue');
+      const nomeCharCountEl = document.getElementById('nomeCharCount');
+
+      var PHOTO_LEFT = 29, PHOTO_TOP = 29, PHOTO_WIDTH = 42, PHOTO_HEIGHT = 42;
+      var photoZoom = 1, photoPanX = 0, photoPanY = 0;
+      var projetoFinalizado = true;
+
+      function getPhotoPanLimits() {
+        var w = container.offsetWidth || 1;
+        var h = container.offsetHeight || 1;
+        var ww = w * PHOTO_WIDTH / 100;
+        var hh = h * PHOTO_HEIGHT / 100;
+        var margin = Math.max(0, photoZoom - 1);
+        return { maxX: margin * ww / 2, maxY: margin * hh / 2 };
+      }
+
+      function clampPhotoPan() {
+        var lim = getPhotoPanLimits();
+        photoPanX = Math.max(-lim.maxX, Math.min(lim.maxX, photoPanX));
+        photoPanY = Math.max(-lim.maxY, Math.min(lim.maxY, photoPanY));
+      }
+
+      function applyPhotoZoomPan() {
+        clampPhotoPan();
+        if (photoImg) photoImg.style.transform = 'translate(' + photoPanX + 'px,' + photoPanY + 'px) scale(' + photoZoom + ')';
+        if (photoDragOverlay) {
+          photoDragOverlay.style.pointerEvents = photoZoom > 1 ? 'auto' : 'none';
+          photoDragOverlay.style.cursor = photoZoom > 1 ? 'move' : 'default';
+        }
+      }
+
+      function detectVazadoArea() {
+        var img = templateImgEl;
+        if (!img || !img.complete || !img.naturalWidth) return null;
+        var cw = container.offsetWidth || 200;
+        var ch = container.offsetHeight || 250;
+        if (cw < 10 || ch < 10) return null;
+        var canvas = document.createElement('canvas');
+        canvas.width = cw;
+        canvas.height = ch;
+        var ctx = canvas.getContext('2d');
+        if (!ctx) return null;
+        ctx.drawImage(img, 0, 0, cw, ch);
+        var data;
+        try { data = ctx.getImageData(0, 0, cw, ch); } catch (e) { return null; }
+        var d = data.data;
+        var minX = cw, minY = ch, maxX = 0, maxY = 0;
+        var found = false;
+        for (var y = 0; y < ch; y++) {
+          for (var x = 0; x < cw; x++) {
+            var i = (y * cw + x) * 4;
+            if (d[i + 3] < 128) {
+              found = true;
+              if (x < minX) minX = x;
+              if (x > maxX) maxX = x;
+              if (y < minY) minY = y;
+              if (y > maxY) maxY = y;
+            }
+          }
+        }
+        if (!found || maxX <= minX || maxY <= minY) return null;
+        return {
+          left: (minX / cw) * 100,
+          top: (minY / ch) * 100,
+          width: ((maxX - minX + 1) / cw) * 100,
+          height: ((maxY - minY + 1) / ch) * 100
+        };
+      }
+
+      function applyVazadoToFrameAndPhoto(v) {
+        PHOTO_LEFT = v.left;
+        PHOTO_TOP = v.top;
+        PHOTO_WIDTH = v.width;
+        PHOTO_HEIGHT = v.height;
+        if (photoWrap) {
+          photoWrap.style.left = v.left + '%';
+          photoWrap.style.top = v.top + '%';
+          photoWrap.style.width = v.width + '%';
+          photoWrap.style.height = v.height + '%';
+        }
+        if (photoBack) {
+          photoBack.style.left = v.left + '%';
+          photoBack.style.top = v.top + '%';
+          photoBack.style.width = v.width + '%';
+          photoBack.style.height = v.height + '%';
+        }
+        if (photoDragOverlay) {
+          photoDragOverlay.style.left = v.left + '%';
+          photoDragOverlay.style.top = v.top + '%';
+          photoDragOverlay.style.width = v.width + '%';
+          photoDragOverlay.style.height = v.height + '%';
+        }
+      }
+
+      function getContainerRect() {
+        return container.getBoundingClientRect();
+      }
+
+      function persistState() {
+        const state = {
+          finalizado: projetoFinalizado,
+          photo: photoImg.src || '',
+          photoLeft: PHOTO_LEFT,
+          photoTop: PHOTO_TOP,
+          photoWidth: PHOTO_WIDTH,
+          photoHeight: PHOTO_HEIGHT,
+          photoZoom: photoZoom,
+          photoPanX: photoPanX,
+          photoPanY: photoPanY,
+          frase: formFrase ? formFrase.value : '',
+          fraseWidth: fraseWidthInput ? parseInt(fraseWidthInput.value, 10) : 20,
+          nome: formNome ? formNome.value : '',
+          nomeWidth: nomeWidthInput ? parseInt(nomeWidthInput.value, 10) : 44,
+          nascimento: formNascimento ? formNascimento.value : '',
+          falecimento: formFalecimento ? formFalecimento.value : '',
+          elFrase: getElRect('elFrase'),
+          elNome: getElRect('elNome'),
+          elNascimento: getElRect('elNascimento'),
+          elFalecimento: getElRect('elFalecimento')
+        };
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          var defaultLayout = {
+            elFrase: state.elFrase,
+            elNome: state.elNome,
+            elNascimento: state.elNascimento,
+            elFalecimento: state.elFalecimento,
+            fraseWidth: state.fraseWidth,
+            nomeWidth: state.nomeWidth
+          };
+          localStorage.setItem(DEFAULT_LAYOUT_KEY, JSON.stringify(defaultLayout));
+        } catch (e) {}
+      }
+
+      function applyFinalizedUI() {
+        if (projetoFinalizado) {
+          if (previewLabel) previewLabel.textContent = 'Preview';
+          if (fraseWidthGroup) fraseWidthGroup.style.display = 'none';
+          if (nomeWidthGroup) nomeWidthGroup.style.display = 'none';
+          if (btnResetPos) btnResetPos.style.display = 'none';
+          if (btnFixarPos) btnFixarPos.style.display = 'none';
+          if (btnFinalizar) btnFinalizar.style.display = 'none';
+          if (btnReabrir) btnReabrir.style.display = 'none';
+          if (photoZoomInput) photoZoomInput.disabled = false;
+          if (fraseWidthInput) fraseWidthInput.disabled = true;
+          if (nomeWidthInput) nomeWidthInput.disabled = true;
+          if (photoDragOverlay) {
+            photoDragOverlay.title = photoZoom > 1 ? 'Arraste para reposicionar a foto' : 'Zoom acima de 100% permite arrastar a foto dentro do quadro';
+            photoDragOverlay.style.pointerEvents = photoZoom > 1 ? 'auto' : 'none';
+          }
+          container.classList.add('projeto-finalizado');
+        } else {
+          if (previewLabel) previewLabel.textContent = 'Preview — arraste os textos para posicionar';
+          if (fraseWidthGroup) fraseWidthGroup.style.display = 'block';
+          if (nomeWidthGroup) nomeWidthGroup.style.display = 'block';
+          if (btnResetPos) btnResetPos.style.display = '';
+          if (btnFixarPos) btnFixarPos.style.display = '';
+          if (btnFinalizar) btnFinalizar.style.display = 'inline-block';
+          if (btnReabrir) btnReabrir.style.display = 'none';
+          if (photoZoomInput) photoZoomInput.disabled = false;
+          if (fraseWidthInput) fraseWidthInput.disabled = false;
+          if (nomeWidthInput) nomeWidthInput.disabled = false;
+          if (photoDragOverlay) {
+            photoDragOverlay.title = photoZoom > 1 ? 'Arraste para reposicionar a foto' : 'Zoom acima de 100% permite arrastar a foto dentro do quadro';
+            photoDragOverlay.style.pointerEvents = photoZoom > 1 ? 'auto' : 'none';
+          }
+          container.classList.remove('projeto-finalizado');
+        }
+      }
+
+      function getElRect(id) {
+        const el = document.getElementById(id);
+        if (!el) return null;
+        const r = container.getBoundingClientRect();
+        const e = el.getBoundingClientRect();
+        return {
+          left: ((e.left - r.left) / r.width * 100).toFixed(2),
+          top: ((e.top - r.top) / r.height * 100).toFixed(2),
+          width: (e.width / r.width * 100).toFixed(2)
+        };
+      }
+
+      function setElRect(id, rect) {
+        const el = document.getElementById(id);
+        if (!el || !rect) return;
+        el.style.left = rect.left + '%';
+        el.style.top = rect.top + '%';
+        if (rect.width) el.style.width = rect.width + '%';
+      }
+
+      function getFixedPositions() {
+        try {
+          const raw = localStorage.getItem(FIXED_POSITIONS_KEY);
+          if (!raw) return null;
+          return JSON.parse(raw);
+        } catch (e) { return null; }
+      }
+
+      function saveFixedPositions() {
+        try {
+          const fixed = {
+            elNascimento: getElRect('elNascimento'),
+            elFalecimento: getElRect('elFalecimento')
+          };
+          localStorage.setItem(FIXED_POSITIONS_KEY, JSON.stringify(fixed));
+        } catch (e) {}
+      }
+
+      function applyFixedPositions() {
+        const fixed = getFixedPositions();
+        if (!fixed) return false;
+        if (fixed.elNascimento) setElRect('elNascimento', fixed.elNascimento);
+        if (fixed.elFalecimento) setElRect('elFalecimento', fixed.elFalecimento);
+        return true;
+      }
+
+      function applyFraseWidth() {
+        const el = document.getElementById('elFrase');
+        if (!el || !fraseWidthInput) return;
+        const pct = Math.max(14, Math.min(32, parseInt(fraseWidthInput.value, 10) || 20));
+        el.style.width = pct + '%';
+        if (fraseWidthValueEl) fraseWidthValueEl.textContent = pct + '%';
+      }
+
+      function applyNomeWidth() {
+        const el = document.getElementById('elNome');
+        if (!el || !nomeWidthInput) return;
+        const pct = Math.max(20, Math.min(55, parseInt(nomeWidthInput.value, 10) || 44));
+        el.style.width = pct + '%';
+        if (nomeWidthValueEl) nomeWidthValueEl.textContent = pct + '%';
+      }
+
+      function updateNomeCharCount() {
+        const n = formNome ? formNome.value.length : 0;
+        if (nomeCharCountEl) { nomeCharCountEl.textContent = n; nomeCharCountEl.classList.toggle('at-limit', n >= NOME_LIMIT); }
+      }
+
+      function applyDateMask(inputEl) {
+        if (!inputEl) return;
+        var raw = inputEl.value.replace(/\D/g, '');
+        raw = raw.slice(0, 8);
+        var formatted = '';
+        if (raw.length > 0) formatted = raw.slice(0, 2);
+        if (raw.length > 2) formatted += '/' + raw.slice(2, 4);
+        if (raw.length > 4) formatted += '/' + raw.slice(4, 8);
+        var start = inputEl.selectionStart;
+        var prevLen = inputEl.value.length;
+        inputEl.value = formatted;
+        var newLen = formatted.length;
+        var newStart = Math.min(start + (newLen - prevLen), newLen);
+        newStart = Math.max(0, Math.min(newStart, newLen));
+        inputEl.setSelectionRange(newStart, newStart);
+      }
+
+      function bindDateMask(inputEl) {
+        if (!inputEl) return;
+        inputEl.addEventListener('input', function () {
+          applyDateMask(inputEl);
+        });
+      }
+
+      function applyDefaultLayout() {
+        ['elFrase', 'elNome', 'elNascimento', 'elFalecimento'].forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el) el.style.cssText = '';
+        });
+        if (fraseWidthInput) { fraseWidthInput.value = 20; if (fraseWidthValueEl) fraseWidthValueEl.textContent = '20%'; }
+        if (nomeWidthInput) { nomeWidthInput.value = 44; if (nomeWidthValueEl) nomeWidthValueEl.textContent = '44%'; }
+        applyFraseWidth();
+        applyNomeWidth();
+      }
+
+      function applyLayoutFromObject(layout) {
+        if (!layout) return;
+        if (layout.fraseWidth != null && fraseWidthInput) {
+          fraseWidthInput.value = Math.max(14, Math.min(32, layout.fraseWidth));
+          if (fraseWidthValueEl) fraseWidthValueEl.textContent = fraseWidthInput.value + '%';
+          applyFraseWidth();
+        }
+        if (layout.nomeWidth != null && nomeWidthInput) {
+          nomeWidthInput.value = Math.max(20, Math.min(55, layout.nomeWidth));
+          if (nomeWidthValueEl) nomeWidthValueEl.textContent = nomeWidthInput.value + '%';
+          applyNomeWidth();
+        }
+        if (layout.elFrase) setElRect('elFrase', layout.elFrase);
+        if (layout.elNome) setElRect('elNome', layout.elNome);
+        if (layout.elNascimento) setElRect('elNascimento', layout.elNascimento);
+        if (layout.elFalecimento) setElRect('elFalecimento', layout.elFalecimento);
+      }
+
+      function applyDefaultLayoutFromStorage() {
+        try {
+          var raw = localStorage.getItem(DEFAULT_LAYOUT_KEY);
+          if (!raw) return false;
+          applyLayoutFromObject(JSON.parse(raw));
+          return true;
+        } catch (e) { return false; }
+      }
+
+      function loadState() {
+        function applyFormDataOnly(state) {
+          if (!state) return;
+          if (state.photo) {
+            photoImg.src = state.photo;
+            photoImg.style.display = 'block';
+            photoPlaceholder.style.display = 'none';
+          }
+          if (state.frase != null && formFrase) formFrase.value = (state.frase + '').replace(/\d/g, '').slice(0, PHRASE_LIMIT);
+          if (state.nome != null && formNome) formNome.value = (state.nome + '').replace(/\d/g, '').slice(0, NOME_LIMIT);
+          if (state.nascimento != null && formNascimento) { formNascimento.value = state.nascimento; applyDateMask(formNascimento); }
+          if (state.falecimento != null && formFalecimento) { formFalecimento.value = state.falecimento; applyDateMask(formFalecimento); }
+          syncFormToPreview();
+          if (state.photoZoom != null) {
+            photoZoom = Math.max(1, parseFloat(state.photoZoom) || 1);
+            photoPanX = state.photoPanX != null ? state.photoPanX : 0;
+            photoPanY = state.photoPanY != null ? state.photoPanY : 0;
+            if (photoZoomInput) { photoZoomInput.value = photoZoom; photoZoomValueEl.textContent = Math.round(photoZoom * 100) + '%'; }
+            applyPhotoZoomPan();
+          }
+          updateCharCount();
+          updateNomeCharCount();
+        }
+        try {
+          var raw = localStorage.getItem(STORAGE_KEY);
+          var state = raw ? JSON.parse(raw) : null;
+          fetch('default-layout.json').then(function (r) { return r.ok ? r.json() : Promise.reject(); }).then(function (layout) {
+            applyLayoutFromObject(layout);
+            applyFormDataOnly(state);
+          }).catch(function () {
+            if (state) {
+              if (state.fraseWidth != null && fraseWidthInput) {
+                fraseWidthInput.value = Math.max(14, Math.min(32, state.fraseWidth));
+                if (fraseWidthValueEl) fraseWidthValueEl.textContent = fraseWidthInput.value + '%';
+              }
+              if (state.nomeWidth != null && nomeWidthInput) {
+                nomeWidthInput.value = Math.max(20, Math.min(55, state.nomeWidth));
+                if (nomeWidthValueEl) nomeWidthValueEl.textContent = nomeWidthInput.value + '%';
+              }
+              if (state.elFrase) setElRect('elFrase', state.elFrase);
+              if (state.fraseWidth != null) applyFraseWidth();
+              if (state.elNome) setElRect('elNome', state.elNome);
+              if (state.nomeWidth != null) applyNomeWidth();
+              if (state.elNascimento) setElRect('elNascimento', state.elNascimento);
+              if (state.elFalecimento) setElRect('elFalecimento', state.elFalecimento);
+            } else if (!applyDefaultLayoutFromStorage()) {
+              applyDefaultLayout();
+            }
+            applyFormDataOnly(state);
+          });
+        } catch (e) {
+          applyDefaultLayout();
+        }
+      }
+
+      function syncFormToPreview() {
+        if (previewFrase) previewFrase.textContent = formFrase ? formFrase.value : '';
+        if (previewNome) previewNome.textContent = formNome ? formNome.value : '';
+        if (previewNascimento) previewNascimento.textContent = formNascimento ? formNascimento.value : '';
+        if (previewFalecimento) previewFalecimento.textContent = formFalecimento ? formFalecimento.value : '';
+      }
+
+      function updateCharCount() {
+        const n = formFrase ? formFrase.value.length : 0;
+        if (charCountEl) { charCountEl.textContent = n; charCountEl.classList.toggle('at-limit', n >= PHRASE_LIMIT); }
+      }
+
+      if (formFrase) {
+        formFrase.addEventListener('input', function () {
+          var val = this.value.replace(/\d/g, '');
+          if (val !== this.value) this.value = val;
+          updateCharCount();
+          syncFormToPreview();
+          persistState();
+        });
+      }
+      if (fraseWidthInput) {
+        fraseWidthInput.addEventListener('input', function () {
+          applyFraseWidth();
+          persistState();
+        });
+      }
+      if (formNome) {
+        formNome.addEventListener('input', function () {
+          var val = this.value.replace(/\d/g, '');
+          if (val !== this.value) this.value = val;
+          updateNomeCharCount();
+          syncFormToPreview();
+          persistState();
+        });
+        formNome.addEventListener('blur', persistState);
+      }
+      if (nomeWidthInput) {
+        nomeWidthInput.addEventListener('input', function () {
+          applyNomeWidth();
+          persistState();
+        });
+      }
+      bindDateMask(formNascimento);
+      bindDateMask(formFalecimento);
+      if (formNascimento) {
+        formNascimento.addEventListener('input', function () { syncFormToPreview(); persistState(); });
+        formNascimento.addEventListener('blur', persistState);
+      }
+      if (formFalecimento) {
+        formFalecimento.addEventListener('input', function () { syncFormToPreview(); persistState(); });
+        formFalecimento.addEventListener('blur', persistState);
+      }
+
+      photoInput.addEventListener('change', function () {
+        const file = this.files && this.files[0];
+        if (!file || !file.type.startsWith('image/')) return;
+        const reader = new FileReader();
+        reader.onload = function () {
+          photoImg.src = reader.result;
+          photoImg.style.display = 'block';
+          photoPlaceholder.style.display = 'none';
+          applyPhotoZoomPan();
+          persistState();
+        };
+        reader.readAsDataURL(file);
+      });
+
+      if (photoZoomInput) {
+        photoZoomInput.addEventListener('input', function () {
+          photoZoom = Math.max(1, parseFloat(this.value) || 1);
+          this.value = photoZoom;
+          photoZoomValueEl.textContent = Math.round(photoZoom * 100) + '%';
+          applyPhotoZoomPan();
+          persistState();
+        });
+      }
+
+      if (photoDragOverlay) {
+        var dragStartX, dragStartY, dragStartPanX, dragStartPanY;
+        function onPanMove(e) {
+          var x = e.touches ? e.touches[0].clientX : e.clientX;
+          var y = e.touches ? e.touches[0].clientY : e.clientY;
+          photoPanX = dragStartPanX + (x - dragStartX);
+          photoPanY = dragStartPanY + (y - dragStartY);
+          applyPhotoZoomPan();
+        }
+        function onPanEnd() {
+          document.removeEventListener('mousemove', onPanMove);
+          document.removeEventListener('mouseup', onPanEnd);
+          document.removeEventListener('touchmove', onPanMove, { passive: false });
+          document.removeEventListener('touchend', onPanEnd);
+          persistState();
+        }
+        photoDragOverlay.addEventListener('mousedown', function (e) {
+          if (photoZoom <= 1) return;
+          e.preventDefault();
+          dragStartX = e.clientX;
+          dragStartY = e.clientY;
+          dragStartPanX = photoPanX;
+          dragStartPanY = photoPanY;
+          document.addEventListener('mousemove', onPanMove);
+          document.addEventListener('mouseup', onPanEnd);
+        });
+        photoDragOverlay.addEventListener('touchstart', function (e) {
+          if (photoZoom <= 1 || !e.touches || !e.touches[0]) return;
+          e.preventDefault();
+          dragStartX = e.touches[0].clientX;
+          dragStartY = e.touches[0].clientY;
+          dragStartPanX = photoPanX;
+          dragStartPanY = photoPanY;
+          document.addEventListener('touchmove', onPanMove, { passive: false });
+          document.addEventListener('touchend', onPanEnd);
+        }, { passive: false });
+      }
+
+      function makeDraggable(el, onEnd) {
+        let startX, startY, startLeft, startTop, rect;
+        function move(e) {
+          const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+          const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+          const dx = (clientX - startX) / rect.width * 100;
+          const dy = (clientY - startY) / rect.height * 100;
+          const newLeft = Math.max(0, Math.min(100 - parseFloat(el.style.width || 20), startLeft + dx));
+          const newTop = Math.max(0, Math.min(100, startTop + dy));
+          el.style.left = newLeft + '%';
+          el.style.top = newTop + '%';
+        }
+        function stop() {
+          el.classList.remove('dragging');
+          document.removeEventListener('mousemove', move);
+          document.removeEventListener('mouseup', stop);
+          document.removeEventListener('touchmove', move, { passive: false });
+          document.removeEventListener('touchend', stop);
+          if (onEnd) onEnd();
+        }
+        function start(e) {
+          if (projetoFinalizado) return;
+          e.preventDefault();
+          rect = getContainerRect();
+          startX = e.touches ? e.touches[0].clientX : e.clientX;
+          startY = e.touches ? e.touches[0].clientY : e.clientY;
+          const elRect = el.getBoundingClientRect();
+          startLeft = ((elRect.left - rect.left) / rect.width * 100);
+          startTop = ((elRect.top - rect.top) / rect.height * 100);
+          el.classList.add('dragging');
+          document.addEventListener('mousemove', move);
+          document.addEventListener('mouseup', stop);
+          document.addEventListener('touchmove', move, { passive: false });
+          document.addEventListener('touchend', stop);
+        }
+        el.addEventListener('mousedown', start);
+        el.addEventListener('touchstart', start, { passive: false });
+      }
+
+      ['elFrase', 'elNome', 'elNascimento', 'elFalecimento'].forEach(function (id) {
+        const el = document.getElementById(id);
+        if (el) makeDraggable(el, persistState);
+      });
+
+      if (btnConfigLayout) {
+        btnConfigLayout.addEventListener('click', function () {
+          projetoFinalizado = !projetoFinalizado;
+          applyFinalizedUI();
+          this.textContent = projetoFinalizado ? 'Configurar layout' : 'Concluir configuração';
+        });
+      }
+      if (btnDownloadLayout) {
+        btnDownloadLayout.addEventListener('click', function () {
+          var layout = {
+            elFrase: getElRect('elFrase'),
+            elNome: getElRect('elNome'),
+            elNascimento: getElRect('elNascimento'),
+            elFalecimento: getElRect('elFalecimento'),
+            fraseWidth: fraseWidthInput ? parseInt(fraseWidthInput.value, 10) : 20,
+            nomeWidth: nomeWidthInput ? parseInt(nomeWidthInput.value, 10) : 44
+          };
+          var blob = new Blob([JSON.stringify(layout, null, 2)], { type: 'application/json' });
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'default-layout.json';
+          a.click();
+          URL.revokeObjectURL(a.href);
+        });
+      }
+
+      btnExport.addEventListener('click', function () {
+        const templateImg = document.getElementById('templateImg');
+        const cw = container.offsetWidth;
+        const ch = container.offsetHeight;
+        const w = 1080;
+        const h = 1440;
+        const scaleX = w / cw;
+        const scaleY = h / ch;
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.fillStyle = '#f5f5f0';
+        ctx.fillRect(0, 0, w, h);
+        function drawImage(src, sx, sy, sw, sh, dx, dy, dw, dh) {
+          return new Promise(function (res, rej) {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = function () {
+              if (sw > 0 && sh > 0) {
+                ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+              } else {
+                ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, dx, dy, dw, dh);
+              }
+              res();
+            };
+            img.onerror = rej;
+            img.src = src;
+          });
+        }
+        const photoSrc = photoImg.src;
+        const leftPct = PHOTO_LEFT / 100;
+        const topPct = PHOTO_TOP / 100;
+        const wPct = PHOTO_WIDTH / 100;
+        const hPct = PHOTO_HEIGHT / 100;
+        const ww = w * wPct;
+        const hh = h * hPct;
+        const l = w * leftPct;
+        const t = h * topPct;
+        function wrapText(ctx, text, maxWidth) {
+          if (!text || maxWidth <= 0) return [];
+          var words = text.trim().split(/\s+/);
+          var lines = [];
+          var line = '';
+          for (var i = 0; i < words.length; i++) {
+            var word = words[i];
+            var test = line ? line + ' ' + word : word;
+            var m = ctx.measureText(test);
+            if (m.width > maxWidth && line) {
+              lines.push(line);
+              line = word;
+              while (ctx.measureText(line).width > maxWidth) {
+                var fit = '';
+                for (var c = 0; c < line.length; c++) {
+                  if (ctx.measureText(fit + line[c]).width <= maxWidth) fit += line[c];
+                  else break;
+                }
+                lines.push(fit);
+                line = line.slice(fit.length) || '';
+              }
+            } else if (m.width > maxWidth) {
+              while (word.length) {
+                var fit = '';
+                for (var c = 0; c < word.length; c++) {
+                  if (ctx.measureText(fit + word[c]).width <= maxWidth) fit += word[c];
+                  else break;
+                }
+                lines.push(fit);
+                word = word.slice(fit.length);
+                line = word;
+              }
+            } else {
+              line = test;
+            }
+          }
+          if (line) lines.push(line);
+          return lines;
+        }
+        function drawTexts() {
+          ctx.fillStyle = '#ffffff';
+          var fontSize = Math.round(14 * scaleX);
+          ctx.font = fontSize + 'px Georgia';
+          ctx.textBaseline = 'top';
+          var lineHeight = fontSize * 1.3;
+          const fr = document.getElementById('elFrase');
+          const nm = document.getElementById('elNome');
+          const nr = document.getElementById('elNascimento');
+          const frr = document.getElementById('elFalecimento');
+          var padLeft = 0, padTop = 0, padRight = 0;
+          if (fr) {
+            var cs = window.getComputedStyle(fr);
+            padLeft = (parseFloat(cs.paddingLeft) || 0) * scaleX;
+            padTop = (parseFloat(cs.paddingTop) || 0) * scaleY;
+            padRight = (parseFloat(cs.paddingRight) || 0) * scaleX;
+          }
+          var dy = 6 * scaleY;
+          var fraseBoxWidth = (parseFloat(fr.style.width || 20) / 100) * w - padLeft - padRight;
+          var fraseMaxWidth = Math.max(1, fraseBoxWidth * 0.88);
+          var fraseLines = wrapText(ctx, (formFrase && formFrase.value) || '', fraseMaxWidth);
+          const fl = (parseFloat(fr.style.left || 8) / 100) * w + padLeft;
+          var ft = (parseFloat(fr.style.top || 72) / 100) * h + padTop + dy;
+          fraseLines.forEach(function (line) {
+            ctx.fillText(line, fl, ft);
+            ft += lineHeight;
+          });
+          var nomeBoxWidth = (parseFloat(nm.style.width || 44) / 100) * w - padLeft - padRight;
+          var nomeMaxWidth = Math.max(1, nomeBoxWidth * 0.88);
+          var nomeLines = wrapText(ctx, (formNome && formNome.value) || '', nomeMaxWidth);
+          const nml = (parseFloat(nm.style.left || 28) / 100) * w + padLeft;
+          var nmt = (parseFloat(nm.style.top || 55) / 100) * h + padTop + dy;
+          nomeLines.forEach(function (line) {
+            ctx.fillText(line, nml, nmt);
+            nmt += lineHeight;
+          });
+          const nl = (parseFloat(nr.style.left || 42) / 100) * w + padLeft;
+          const nt = (parseFloat(nr.style.top || 88) / 100) * h + padTop + dy;
+          ctx.fillText((formNascimento && formNascimento.value) || '', nl, nt);
+          const fll = (parseFloat(frr.style.left || 42) / 100) * w + padLeft;
+          const ftt = (parseFloat(frr.style.top || 93) / 100) * h + padTop + dy;
+          ctx.fillText((formFalecimento && formFalecimento.value) || '', fll, ftt);
+        }
+        function run() {
+          var p = Promise.resolve();
+          if (photoSrc) {
+            p = p.then(function () {
+              return new Promise(function (res, rej) {
+                var img = new Image();
+                img.onload = function () {
+                  var nw = img.naturalWidth;
+                  var nh = img.naturalHeight;
+                  var scale = Math.max(ww / nw, hh / nh);
+                  var drawW = nw * scale;
+                  var drawH = nh * scale;
+                  var sx = ww / 2 - drawW / 2;
+                  var sy = hh / 2 - drawH / 2;
+                  ctx.save();
+                  ctx.beginPath();
+                  ctx.rect(l, t, ww, hh);
+                  ctx.clip();
+                  ctx.translate(l + ww / 2 + photoPanX * scaleX, t + hh / 2 + photoPanY * scaleY);
+                  ctx.scale(photoZoom, photoZoom);
+                  ctx.translate(-ww / 2, -hh / 2);
+                  ctx.drawImage(img, 0, 0, nw, nh, sx, sy, drawW, drawH);
+                  ctx.restore();
+                  res();
+                };
+                img.onerror = rej;
+                img.src = photoSrc;
+              });
+            });
+          }
+          return p.then(function () {
+            return drawImage(templateImg.currentSrc || templateImg.src, 0, 0, 0, 0, 0, 0, w, h);
+          }).then(function () {
+            drawTexts();
+          });
+        }
+        run().then(function () {
+          const a = document.createElement('a');
+          a.download = 'nota-falecimento.png';
+          a.href = canvas.toDataURL('image/png');
+          a.click();
+        }).catch(function () {
+          alert('Erro ao exportar. Verifique se a imagem do template está acessível.');
+        });
+      });
+
+      loadState();
+      applyFinalizedUI();
+      syncFormToPreview();
+      updateCharCount();
+      updateNomeCharCount();
+      applyPhotoZoomPan();
+
+      function initVazado() {
+        var v = detectVazadoArea();
+        if (v) applyVazadoToFrameAndPhoto(v);
+        applyPhotoZoomPan();
+      }
+      if (templateImgEl) {
+        templateImgEl.onload = function () { setTimeout(initVazado, 80); };
+        if (templateImgEl.complete) setTimeout(initVazado, 150);
+      }
+    })();
+  </script>
+</body>
+</html>
