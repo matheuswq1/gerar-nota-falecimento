@@ -4,90 +4,331 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gerador de Nota de Falecimento</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; }
+    :root {
+      --ui-font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      --bg: #232427;
+      --panel: #2b2c30;
+      --card: #333439;
+      --border: #44464c;
+      --input: #232427;
+      --input-border: #4b4d54;
+      --text: #ececee;
+      --muted: #a3a5ad;
+      --faint: #7c7f88;
+      --accent: #4a9c6a;
+      --accent-hover: #57b07a;
+      --accent-soft: rgba(74, 156, 106, 0.18);
+      --warn: #e0a84a;
+      --danger: #e06666;
+    }
     body {
       margin: 0;
-      font-family: 'Georgia', 'Times New Roman', serif;
-      background: #2a2a2a;
-      color: #333;
-      min-height: 100vh;
-      padding: 0;
+      font-family: var(--ui-font);
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
     .app-header {
-      text-align: center;
-      color: #eee;
-      padding: 0.75rem 1rem;
-      border-bottom: 1px solid #444;
-    }
-    .app-header h1 { font-size: 1.25rem; font-weight: normal; margin: 0 0 0.25rem 0; }
-    .app-header p { margin: 0; font-size: 0.85rem; color: #999; }
-    .app-layout {
       display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
       flex-wrap: wrap;
-      gap: 0;
-      min-height: calc(100vh - 80px);
-    }
-    .form-panel {
-      width: 320px;
-      min-width: 280px;
-      padding: 1.25rem;
-      background: #333;
-      border-right: 1px solid #444;
+      padding: 0.7rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
       flex-shrink: 0;
     }
-    .form-panel h2 {
-      font-size: 1rem;
+    .app-header h1 { font-size: 1.05rem; font-weight: 600; margin: 0; }
+    .app-header p { margin: 0; font-size: 0.82rem; color: var(--muted); }
+    .app-layout {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+    .form-panel {
+      width: 340px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      min-height: 0;
+    }
+    .panel-scroll {
+      flex: 1;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #55575e transparent;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+    .panel-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.9rem;
+    }
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      margin-bottom: 0.8rem;
+    }
+    .section-head h2 {
+      margin: 0;
+      font-size: 0.92rem;
       font-weight: 600;
-      color: #eee;
-      margin: 0 0 1rem 0;
-      padding-bottom: 0.5rem;
-      border-bottom: 1px solid #555;
+      color: var(--text);
     }
-    .form-group {
-      margin-bottom: 1rem;
+    .step {
+      width: 1.4rem;
+      height: 1.4rem;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      color: var(--accent-hover);
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
     }
-    .form-group label {
-      display: block;
-      font-size: 0.8rem;
-      color: #aaa;
+    .field + .field { margin-top: 0.8rem; }
+    .field-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.5rem;
       margin-bottom: 0.35rem;
     }
-    .form-group input[type="text"],
-    .form-group input[type="file"],
-    .form-group textarea {
+    .field-head label, .field-label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--muted);
+    }
+    .counter {
+      font-size: 0.72rem;
+      color: var(--faint);
+      font-variant-numeric: tabular-nums;
+    }
+    .counter .near-limit { color: var(--warn); }
+    .counter .at-limit { color: var(--danger); }
+    .form-panel input[type="text"],
+    .form-panel textarea {
       width: 100%;
-      padding: 0.5rem 0.6rem;
-      border: 1px solid #555;
-      border-radius: 4px;
-      background: #444;
-      color: #fff;
+      padding: 0.55rem 0.65rem;
+      border: 1px solid var(--input-border);
+      border-radius: 7px;
+      background: var(--input);
+      color: var(--text);
       font: inherit;
       font-size: 0.9rem;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
-    .form-group textarea {
+    .form-panel input[type="text"]::placeholder,
+    .form-panel textarea::placeholder { color: #6c6f78; }
+    .form-panel input[type="text"]:focus,
+    .form-panel textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .form-panel input.invalid {
+      border-color: var(--danger);
+      box-shadow: 0 0 0 3px rgba(224, 102, 102, 0.15);
+    }
+    .form-panel textarea {
       resize: vertical;
-      min-height: 72px;
+      min-height: 76px;
+      line-height: 1.4;
     }
-    .form-group input[type="file"] { padding: 0.35rem 0; cursor: pointer; }
-    .form-group .hint { font-size: 0.75rem; color: #777; margin-top: 0.25rem; }
-    .form-actions {
-      margin-top: 1.5rem;
+    .date-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem;
+    }
+    .date-grid .field + .field { margin-top: 0; }
+    .field-head .icon { color: var(--faint); margin-right: 0.3rem; }
+    .hint {
+      font-size: 0.74rem;
+      color: var(--faint);
+      margin: 0.4rem 0 0;
+      line-height: 1.35;
+    }
+    .hint.error { color: var(--danger); }
+    .hint.warn { color: var(--warn); }
+    .layout-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+    }
+    .layout-option {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.3rem 0.3rem 0.4rem;
+      background: var(--input);
+      border: 2px solid var(--border);
+      border-radius: 9px;
+      color: var(--muted);
+      font: inherit;
+      font-size: 0.76rem;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s, transform 0.15s;
+    }
+    .layout-option img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      object-fit: cover;
+      border-radius: 5px;
+      background: #ddd;
+    }
+    .layout-option:hover { border-color: #6a6d75; color: var(--text); }
+    .layout-option:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+    .layout-option.active { border-color: var(--accent); color: var(--text); font-weight: 600; }
+    .layout-option.active::after {
+      content: '✓';
+      position: absolute;
+      top: 0.3rem;
+      right: 0.3rem;
+      width: 1.15rem;
+      height: 1.15rem;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.7rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    }
+    .photo-drop {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      border: 1.5px dashed var(--input-border);
+      border-radius: 9px;
+      background: var(--input);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .photo-drop:hover, .photo-drop.dragover {
+      border-color: var(--accent);
+      background: rgba(74, 156, 106, 0.08);
+    }
+    .photo-drop:focus-within { border-color: var(--accent); }
+    .photo-thumb {
+      width: 56px;
+      height: 56px;
+      border-radius: 8px;
+      background: #3b3d43;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      color: var(--faint);
+      font-size: 1.4rem;
+    }
+    .photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .photo-drop-text { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+    .photo-drop-text strong { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+    .photo-drop-text span { font-size: 0.74rem; color: var(--faint); }
+    .photo-tools { margin-top: 0.8rem; }
+    .photo-tools[hidden] { display: none; }
+    .zoom-row { display: flex; align-items: center; gap: 0.4rem; }
+    .zoom-row input[type="range"] { flex: 1; min-width: 0; accent-color: var(--accent); }
+    .icon-btn {
+      width: 1.9rem;
+      height: 1.9rem;
+      flex-shrink: 0;
+      border-radius: 7px;
+      border: 1px solid var(--input-border);
+      background: var(--input);
+      color: var(--text);
+      font: inherit;
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .icon-btn:hover { border-color: var(--accent); background: #2c2e32; }
+    .link-btns { display: flex; gap: 0.5rem; margin-top: 0.6rem; }
+    .link-btn {
+      flex: 1;
+      padding: 0.4rem 0.5rem;
+      border-radius: 7px;
+      border: 1px solid var(--input-border);
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .link-btn:hover { border-color: #6a6d75; color: var(--text); }
+    .link-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+    .panel-footer {
+      padding: 0.85rem 1rem 1rem;
+      border-top: 1px solid var(--border);
+      background: var(--panel);
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
     }
-    .form-actions button {
-      padding: 0.55rem 1rem;
-      border-radius: 6px;
+    .panel-footer button {
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
       border: none;
       cursor: pointer;
-      font-size: 0.95rem;
+      font: inherit;
+      font-size: 0.92rem;
     }
-    .form-actions .btn-primary { background: #4a7c59; color: #fff; }
-    .form-actions .btn-primary:hover { background: #5a9c69; }
-    .form-actions .btn-secondary { background: #555; color: #eee; }
-    .form-actions .btn-secondary:hover { background: #666; }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      padding: 0.75rem 1rem !important;
+      box-shadow: 0 2px 10px rgba(74, 156, 106, 0.25);
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:active { transform: translateY(1px); }
+    .btn-primary:disabled { opacity: 0.7; cursor: progress; }
+    .btn-primary svg { width: 1.1rem; height: 1.1rem; }
+    .btn-secondary { background: #44464c; color: var(--text); }
+    .btn-secondary:hover { background: #50525a; }
+    .export-status { font-size: 0.76rem; color: var(--faint); text-align: center; min-height: 1em; margin: 0; }
+    .export-status.ok { color: var(--accent-hover); }
+    .export-status.error { color: var(--danger); }
+    @media (max-width: 760px) {
+      body { height: auto; min-height: 100vh; }
+      .app-layout { flex-direction: column; }
+      .form-panel { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+      .panel-scroll { overflow: visible; }
+      .panel-footer { position: sticky; bottom: 0; z-index: 10; box-shadow: 0 -4px 16px rgba(0,0,0,0.35); }
+      .preview-panel { overflow: visible; }
+    }
     .preview-panel {
       flex: 1;
       min-width: 300px;
@@ -95,11 +336,12 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      background: #2a2a2a;
+      background: var(--bg);
+      overflow-y: auto;
     }
     .preview-panel .preview-label {
-      color: #999;
-      font-size: 0.85rem;
+      color: var(--muted);
+      font-size: 0.8rem;
       margin-bottom: 0.5rem;
     }
     .canvas-wrap {
@@ -115,7 +357,7 @@
     .canvas-inner {
       position: relative;
       width: 100%;
-      padding-bottom: 125%;
+      padding-bottom: 133.333%;
     }
     .layer {
       position: absolute;
@@ -135,12 +377,15 @@
       width: 42%;
       height: 42%;
       overflow: hidden;
+      background: #dfe2e7;
     }
     .layer-photo-back .photo-back img {
+      position: absolute;
+      left: 0;
+      top: 0;
       width: 100%;
       height: 100%;
-      object-fit: cover;
-      object-position: center;
+      max-width: none;
       display: block;
       transform-origin: center center;
     }
@@ -172,6 +417,7 @@
       background: transparent;
       pointer-events: none;
     }
+    .layer-photo .photo-wrap.has-photo { border-color: transparent; }
     .layer-photo .photo-drag-overlay {
       position: absolute;
       left: 29%;
@@ -188,10 +434,11 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      color: rgba(0,0,0,0.35);
-      font-size: 0.75rem;
+      color: #6b7079;
+      font-family: var(--ui-font);
+      font-size: 0.8rem;
       text-align: center;
-      padding: 0.5rem;
+      padding: 1.5rem;
     }
     /* Elementos editáveis (textos por cima de tudo) */
     .layer-editable {
@@ -238,7 +485,6 @@
       left: 8%;
       top: 72%;
       width: 20%;
-      max-width: 180px;
     }
     .el-nome {
       left: 28%;
@@ -262,78 +508,109 @@
       background: transparent;
       border-color: transparent;
     }
-    .btn-export {
-      margin-top: 1rem;
-      padding: 0.6rem 1.2rem;
-      background: #4a7c59;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 1rem;
-    }
-    .btn-export:hover { background: #5a9c69; }
-    .zoom-row { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.35rem; }
-    .zoom-row input[type="range"] { flex: 1; min-width: 0; }
-    .zoom-row span { color: #ccc; font-size: 0.9rem; min-width: 2.5rem; }
-    .label-inline { font-size: 0.85rem; color: #aaa; margin-top: 0.5rem; margin-bottom: 0.2rem; display: block; }
+    .label-inline { font-size: 0.78rem; color: var(--muted); margin-top: 0.6rem; margin-bottom: 0.25rem; display: block; }
+    .width-row span { color: var(--muted); font-size: 0.8rem; min-width: 2.5rem; text-align: right; }
   </style>
 </head>
 <body>
-  <div class="app-header">
+  <header class="app-header">
     <h1>Gerador de Nota de Falecimento</h1>
-    <p>Preencha o formulário ao lado; o preview atualiza em tempo real. Arraste os textos no preview para posicionar.</p>
-  </div>
+    <p>Escolha o layout, envie a foto e preencha os dados. O preview atualiza na hora.</p>
+  </header>
   <div class="app-layout">
     <aside class="form-panel">
-      <h2>Dados da nota</h2>
-      <div class="form-group">
-        <label>Foto</label>
-        <input type="file" id="photoInput" accept="image/*">
-        <div class="hint">Imagem que aparece no espaço vazado do template.</div>
-      </div>
-      <div class="form-group">
-        <label>Zoom da foto</label>
-        <div class="zoom-row">
-          <input type="range" id="photoZoom" min="1" max="2" step="0.1" value="1" title="Zoom">
-          <span id="photoZoomValue">100%</span>
-        </div>
-        <div class="hint">Acima de 100% permite arrastar a foto dentro do quadro.</div>
-      </div>
-      <div class="form-group">
-        <label>Frase (máx. 90 caracteres, sem números)</label>
-        <textarea id="formFrase" rows="3" maxlength="90" placeholder="Ex.: Uma vida de amor e dedicação..."></textarea>
-        <div class="hint"><span id="charCount">0</span>/90</div>
-        <div id="fraseWidthGroup" style="display:none;">
-          <label class="label-inline">Largura da frase no preview</label>
-          <div class="zoom-row">
-            <input type="range" id="fraseWidth" min="14" max="32" value="20" title="Largura do bloco da frase no preview (%)">
-            <span id="fraseWidthValue">20%</span>
+      <div class="panel-scroll">
+        <section class="panel-section">
+          <div class="section-head"><span class="step">1</span><h2>Layout</h2></div>
+          <div class="layout-options" id="layoutOptions" role="radiogroup" aria-label="Layout da nota"></div>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-head"><span class="step">2</span><h2>Foto</h2></div>
+          <label class="photo-drop" id="photoDrop" for="photoInput" tabindex="0">
+            <input type="file" id="photoInput" accept="image/*" hidden>
+            <span class="photo-thumb" id="photoThumb" aria-hidden="true">&#128247;</span>
+            <span class="photo-drop-text">
+              <strong id="photoDropTitle">Escolher foto</strong>
+              <span id="photoDropSub">Clique ou arraste uma imagem aqui</span>
+            </span>
+          </label>
+          <div class="photo-tools" id="photoTools" hidden>
+            <div class="field-head">
+              <label for="photoZoom">Zoom</label>
+              <span class="counter" id="photoZoomValue">100%</span>
+            </div>
+            <div class="zoom-row">
+              <button type="button" class="icon-btn" id="btnZoomOut" title="Diminuir zoom" aria-label="Diminuir zoom">&minus;</button>
+              <input type="range" id="photoZoom" min="1" max="2" step="0.05" value="1" aria-label="Zoom da foto">
+              <button type="button" class="icon-btn" id="btnZoomIn" title="Aumentar zoom" aria-label="Aumentar zoom">+</button>
+            </div>
+            <p class="hint">Arraste a foto no preview para ajustar o enquadramento.</p>
+            <div class="link-btns">
+              <button type="button" class="link-btn" id="btnPhotoReset">Centralizar</button>
+              <button type="button" class="link-btn danger" id="btnPhotoRemove">Remover foto</button>
+            </div>
           </div>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Nome do falecido (máx. 40 caracteres, sem números)</label>
-        <input type="text" id="formNome" maxlength="40" placeholder="Ex.: Maria da Silva">
-        <div class="hint"><span id="nomeCharCount">0</span>/40</div>
-        <div id="nomeWidthGroup" style="display:none;">
-          <label class="label-inline">Largura do nome no preview</label>
-          <div class="zoom-row">
-            <input type="range" id="nomeWidth" min="20" max="55" value="44" title="Largura do bloco do nome no preview (%)">
-            <span id="nomeWidthValue">44%</span>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-head"><span class="step">3</span><h2>Dados do falecido</h2></div>
+          <div class="field">
+            <div class="field-head">
+              <label for="formNome">Nome completo</label>
+              <span class="counter"><span id="nomeCharCount">0</span>/40</span>
+            </div>
+            <input type="text" id="formNome" maxlength="40" placeholder="Ex.: Maria da Silva" autocomplete="off">
+            <p class="hint warn" id="nomeWarn" hidden>Números não são permitidos no nome.</p>
+            <div id="nomeWidthGroup" style="display:none;">
+              <label class="label-inline" for="nomeWidth">Largura do nome no preview</label>
+              <div class="zoom-row width-row">
+                <input type="range" id="nomeWidth" min="10" max="90" value="44" title="Largura do bloco do nome no preview (%)">
+                <span id="nomeWidthValue">44%</span>
+              </div>
+            </div>
           </div>
-        </div>
+          <div class="field">
+            <div class="date-grid">
+              <div class="field">
+                <div class="field-head"><label for="formNascimento"><span class="icon">&#9733;</span>Nascimento</label></div>
+                <input type="text" id="formNascimento" placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric" autocomplete="off">
+              </div>
+              <div class="field">
+                <div class="field-head"><label for="formFalecimento"><span class="icon">&#10013;</span>Falecimento</label></div>
+                <input type="text" id="formFalecimento" placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric" autocomplete="off">
+              </div>
+            </div>
+            <p class="hint error" id="dateError" hidden></p>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-head"><span class="step">4</span><h2>Mensagem</h2></div>
+          <div class="field">
+            <div class="field-head">
+              <label for="formFrase">Frase de homenagem</label>
+              <span class="counter"><span id="charCount">0</span>/90</span>
+            </div>
+            <textarea id="formFrase" rows="3" maxlength="90" placeholder="Ex.: Uma vida de amor e dedicação..."></textarea>
+            <p class="hint warn" id="fraseWarn" hidden>Números não são permitidos na frase.</p>
+            <div id="fraseWidthGroup" style="display:none;">
+              <label class="label-inline" for="fraseWidth">Largura da frase no preview</label>
+              <div class="zoom-row width-row">
+                <input type="range" id="fraseWidth" min="10" max="90" value="20" title="Largura do bloco da frase no preview (%)">
+                <span id="fraseWidthValue">20%</span>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
-      <div class="form-group">
-        <label>Data de nascimento</label>
-        <input type="text" id="formNascimento" placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label>Data de falecimento</label>
-        <input type="text" id="formFalecimento" placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric" autocomplete="off">
-      </div>
-      <div class="form-actions">
-        <button type="button" class="btn-primary" id="btnExport">Exportar como imagem</button>
+
+      <div class="panel-footer">
+        <button type="button" class="btn-primary" id="btnExport">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          <span id="btnExportLabel">Baixar imagem (PNG)</span>
+        </button>
+        <p class="export-status" id="exportStatus" role="status"></p>
         <button type="button" class="btn-secondary" id="btnConfigLayout" title="Permite arrastar os textos e ajustar larguras; depois use Baixar layout padrão e substitua o arquivo default-layout.json" style="display:none;">Configurar layout</button>
         <button type="button" class="btn-secondary" id="btnDownloadLayout" title="Baixe e coloque o arquivo na mesma pasta do index.html para que outras máquinas/navegadores usem as mesmas posições" style="display:none;">Baixar layout padrão</button>
       </div>
@@ -355,7 +632,7 @@
       <!-- Quadro pontilhado + overlay para arrastar a foto -->
       <div class="layer layer-photo">
         <div class="photo-wrap" id="photoWrap">
-          <div class="photo-placeholder" id="photoPlaceholder">Inserir foto acima</div>
+          <div class="photo-placeholder" id="photoPlaceholder">Adicione uma foto no painel ao lado</div>
         </div>
         <div class="photo-drag-overlay" id="photoDragOverlay" title="Zoom acima de 100% permite arrastar a foto dentro do quadro"></div>
       </div>
@@ -386,6 +663,79 @@
       const FIXED_POSITIONS_KEY = 'nota-falecimento-fixed-pos';
       const PHRASE_LIMIT = 90;
       const NOME_LIMIT = 40;
+      const WIDTH_MIN = 10;
+      const WIDTH_MAX = 90;
+      const TEXT_IDS = ['elFrase', 'elNome', 'elNascimento', 'elFalecimento'];
+      const LAYOUTS = {
+        classico: {
+          label: 'Clássico',
+          template: 'Template nota de falecimento.png',
+          layoutFile: 'default-layout.json',
+          storageKey: DEFAULT_LAYOUT_KEY,
+          defaults: {
+            elFrase: { left: 8, top: 72, width: 20 },
+            elNome: { left: 28, top: 55, width: 44 },
+            elNascimento: { left: 42, top: 88, width: 22 },
+            elFalecimento: { left: 42, top: 93, width: 22 },
+            fraseWidth: 20,
+            nomeWidth: 44
+          },
+          text: {
+            elFrase: { size: 14, color: '#ffffff', align: 'left' },
+            elNome: { size: 14, color: '#ffffff', align: 'left' },
+            elNascimento: { size: 14, color: '#ffffff', align: 'left' },
+            elFalecimento: { size: 14, color: '#ffffff', align: 'left' }
+          }
+        },
+        elegante: {
+          label: 'Elegante',
+          template: 'Template nota de falecimento - elegante.png',
+          layoutFile: 'layout-elegante.json',
+          storageKey: DEFAULT_LAYOUT_KEY + '-elegante',
+          defaults: {
+            elFrase: { left: 14, top: 72.2, width: 72 },
+            elNome: { left: 8, top: 64.6, width: 84 },
+            elNascimento: { left: 23.5, top: 87.8, width: 23.5 },
+            elFalecimento: { left: 58.9, top: 87.8, width: 23.5 },
+            fraseWidth: 72,
+            nomeWidth: 84
+          },
+          text: {
+            elFrase: { size: 16, color: '#e9e4d6', align: 'center', style: 'italic', family: "'Cormorant Garamond', Georgia, serif" },
+            elNome: { size: 26, minSize: 16, color: '#e3c27e', align: 'center', weight: '600', family: "'Cormorant Garamond', Georgia, serif" },
+            elNascimento: { size: 15, color: '#f1e3bd', align: 'center' },
+            elFalecimento: { size: 15, color: '#f1e3bd', align: 'center' }
+          }
+        },
+        sereno: {
+          label: 'Azul Sereno',
+          template: 'Template nota de falecimento - sereno.png',
+          layoutFile: 'layout-sereno.json',
+          storageKey: DEFAULT_LAYOUT_KEY + '-sereno',
+          defaults: {
+            elFrase: { left: 12, top: 81.6, width: 76 },
+            elNome: { left: 12, top: 71.6, width: 76 },
+            elNascimento: { left: 22.5, top: 76.9, width: 27 },
+            elFalecimento: { left: 57.6, top: 76.9, width: 27 },
+            fraseWidth: 76,
+            nomeWidth: 76
+          },
+          text: {
+            elFrase: { size: 15, color: '#2b4a6f', align: 'center', style: 'italic' },
+            elNome: { size: 22, minSize: 14, color: '#1d3557', align: 'center', weight: 'bold' },
+            elNascimento: { size: 16, minSize: 11, color: '#1d3557', align: 'left', weight: 'bold' },
+            elFalecimento: { size: 16, minSize: 11, color: '#1d3557', align: 'left', weight: 'bold' }
+          }
+        }
+      };
+      const DEFAULT_TEXT_FAMILY = 'Georgia, serif';
+      var currentLayoutId = 'classico';
+      function currentLayout() { return LAYOUTS[currentLayoutId] || LAYOUTS.classico; }
+      function clampWidth(v, fallback) {
+        var n = parseFloat(v);
+        if (isNaN(n)) n = fallback;
+        return Math.max(WIDTH_MIN, Math.min(WIDTH_MAX, n));
+      }
       const container = document.querySelector('.canvas-inner');
       const photoWrap = document.getElementById('photoWrap');
       const photoPlaceholder = document.getElementById('photoPlaceholder');
@@ -425,16 +775,42 @@
       var photoZoom = 1, photoPanX = 0, photoPanY = 0;
       var projetoFinalizado = true;
 
-      function getPhotoPanLimits() {
+      function getPhotoGeometry() {
         var w = container.offsetWidth || 1;
         var h = container.offsetHeight || 1;
         var ww = w * PHOTO_WIDTH / 100;
         var hh = h * PHOTO_HEIGHT / 100;
-        var margin = Math.max(0, photoZoom - 1);
-        return { maxX: margin * ww / 2, maxY: margin * hh / 2 };
+        var nw = photoImg ? photoImg.naturalWidth : 0;
+        var nh = photoImg ? photoImg.naturalHeight : 0;
+        if (!nw || !nh) return { ww: ww, hh: hh, drawW: ww, drawH: hh };
+        var s = Math.max(ww / nw, hh / nh);
+        return { ww: ww, hh: hh, drawW: nw * s, drawH: nh * s };
+      }
+
+      function getPhotoPanLimits() {
+        var g = getPhotoGeometry();
+        return {
+          maxX: Math.max(0, (g.drawW * photoZoom - g.ww) / 2),
+          maxY: Math.max(0, (g.drawH * photoZoom - g.hh) / 2)
+        };
+      }
+
+      function canPanPhoto() {
+        if (!photoImg || !photoImg.naturalWidth || photoImg.style.display === 'none') return false;
+        var lim = getPhotoPanLimits();
+        return lim.maxX > 0.5 || lim.maxY > 0.5;
+      }
+
+      function updatePhotoDragOverlay() {
+        if (!photoDragOverlay) return;
+        var can = canPanPhoto();
+        photoDragOverlay.style.pointerEvents = can ? 'auto' : 'none';
+        photoDragOverlay.style.cursor = can ? 'move' : 'default';
+        photoDragOverlay.title = can ? 'Arraste para reposicionar a foto' : '';
       }
 
       function clampPhotoPan() {
+        if (!photoImg || !photoImg.naturalWidth) return;
         var lim = getPhotoPanLimits();
         photoPanX = Math.max(-lim.maxX, Math.min(lim.maxX, photoPanX));
         photoPanY = Math.max(-lim.maxY, Math.min(lim.maxY, photoPanY));
@@ -442,11 +818,15 @@
 
       function applyPhotoZoomPan() {
         clampPhotoPan();
-        if (photoImg) photoImg.style.transform = 'translate(' + photoPanX + 'px,' + photoPanY + 'px) scale(' + photoZoom + ')';
-        if (photoDragOverlay) {
-          photoDragOverlay.style.pointerEvents = photoZoom > 1 ? 'auto' : 'none';
-          photoDragOverlay.style.cursor = photoZoom > 1 ? 'move' : 'default';
+        if (photoImg) {
+          var g = getPhotoGeometry();
+          photoImg.style.width = g.drawW + 'px';
+          photoImg.style.height = g.drawH + 'px';
+          photoImg.style.left = (g.ww - g.drawW) / 2 + 'px';
+          photoImg.style.top = (g.hh - g.drawH) / 2 + 'px';
+          photoImg.style.transform = 'translate(' + photoPanX + 'px,' + photoPanY + 'px) scale(' + photoZoom + ')';
         }
+        updatePhotoDragOverlay();
       }
 
       function detectVazadoArea() {
@@ -516,8 +896,20 @@
         return container.getBoundingClientRect();
       }
 
+      function getCurrentPositions() {
+        return {
+          elFrase: getElRect('elFrase'),
+          elNome: getElRect('elNome'),
+          elNascimento: getElRect('elNascimento'),
+          elFalecimento: getElRect('elFalecimento'),
+          fraseWidth: fraseWidthInput ? parseInt(fraseWidthInput.value, 10) : 20,
+          nomeWidth: nomeWidthInput ? parseInt(nomeWidthInput.value, 10) : 44
+        };
+      }
+
       function persistState() {
         const state = {
+          layout: currentLayoutId,
           finalizado: projetoFinalizado,
           photo: photoImg.src || '',
           photoLeft: PHOTO_LEFT,
@@ -540,15 +932,7 @@
         };
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-          var defaultLayout = {
-            elFrase: state.elFrase,
-            elNome: state.elNome,
-            elNascimento: state.elNascimento,
-            elFalecimento: state.elFalecimento,
-            fraseWidth: state.fraseWidth,
-            nomeWidth: state.nomeWidth
-          };
-          localStorage.setItem(DEFAULT_LAYOUT_KEY, JSON.stringify(defaultLayout));
+          localStorage.setItem(currentLayout().storageKey, JSON.stringify(getCurrentPositions()));
         } catch (e) {}
       }
 
@@ -564,10 +948,7 @@
           if (photoZoomInput) photoZoomInput.disabled = false;
           if (fraseWidthInput) fraseWidthInput.disabled = true;
           if (nomeWidthInput) nomeWidthInput.disabled = true;
-          if (photoDragOverlay) {
-            photoDragOverlay.title = photoZoom > 1 ? 'Arraste para reposicionar a foto' : 'Zoom acima de 100% permite arrastar a foto dentro do quadro';
-            photoDragOverlay.style.pointerEvents = photoZoom > 1 ? 'auto' : 'none';
-          }
+          updatePhotoDragOverlay();
           container.classList.add('projeto-finalizado');
         } else {
           if (previewLabel) previewLabel.textContent = 'Preview — arraste os textos para posicionar';
@@ -580,10 +961,7 @@
           if (photoZoomInput) photoZoomInput.disabled = false;
           if (fraseWidthInput) fraseWidthInput.disabled = false;
           if (nomeWidthInput) nomeWidthInput.disabled = false;
-          if (photoDragOverlay) {
-            photoDragOverlay.title = photoZoom > 1 ? 'Arraste para reposicionar a foto' : 'Zoom acima de 100% permite arrastar a foto dentro do quadro';
-            photoDragOverlay.style.pointerEvents = photoZoom > 1 ? 'auto' : 'none';
-          }
+          updatePhotoDragOverlay();
           container.classList.remove('projeto-finalizado');
         }
       }
@@ -637,7 +1015,7 @@
       function applyFraseWidth() {
         const el = document.getElementById('elFrase');
         if (!el || !fraseWidthInput) return;
-        const pct = Math.max(14, Math.min(32, parseInt(fraseWidthInput.value, 10) || 20));
+        const pct = clampWidth(fraseWidthInput.value, 20);
         el.style.width = pct + '%';
         if (fraseWidthValueEl) fraseWidthValueEl.textContent = pct + '%';
       }
@@ -645,14 +1023,67 @@
       function applyNomeWidth() {
         const el = document.getElementById('elNome');
         if (!el || !nomeWidthInput) return;
-        const pct = Math.max(20, Math.min(55, parseInt(nomeWidthInput.value, 10) || 44));
+        const pct = clampWidth(nomeWidthInput.value, 44);
         el.style.width = pct + '%';
         if (nomeWidthValueEl) nomeWidthValueEl.textContent = pct + '%';
       }
 
+      function setCounter(el, n, limit) {
+        if (!el) return;
+        el.textContent = n;
+        el.classList.toggle('at-limit', n >= limit);
+        el.classList.toggle('near-limit', n < limit && n >= Math.round(limit * 0.85));
+      }
+
       function updateNomeCharCount() {
-        const n = formNome ? formNome.value.length : 0;
-        if (nomeCharCountEl) { nomeCharCountEl.textContent = n; nomeCharCountEl.classList.toggle('at-limit', n >= NOME_LIMIT); }
+        setCounter(nomeCharCountEl, formNome ? formNome.value.length : 0, NOME_LIMIT);
+      }
+
+      var warnTimers = {};
+      function flashWarn(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.hidden = false;
+        clearTimeout(warnTimers[id]);
+        warnTimers[id] = setTimeout(function () { el.hidden = true; }, 2500);
+      }
+
+      function parseDate(value) {
+        var m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value || '');
+        if (!m) return null;
+        var d = +m[1], mo = +m[2], y = +m[3];
+        var date = new Date(y, mo - 1, d);
+        if (date.getFullYear() !== y || date.getMonth() !== mo - 1 || date.getDate() !== d) return null;
+        return date;
+      }
+
+      function validateDates(showIncomplete) {
+        var errorEl = document.getElementById('dateError');
+        var messages = [];
+        var dates = {};
+        [[formNascimento, 'nascimento'], [formFalecimento, 'falecimento']].forEach(function (pair) {
+          var input = pair[0];
+          if (!input) return;
+          var v = input.value;
+          var invalid = false;
+          if (v.length === 10) {
+            dates[pair[1]] = parseDate(v);
+            invalid = !dates[pair[1]];
+            if (invalid) messages.push('Data de ' + pair[1] + ' inválida.');
+          } else if (v.length > 0 && showIncomplete) {
+            invalid = true;
+            messages.push('Complete a data de ' + pair[1] + ' (dd/mm/aaaa).');
+          }
+          input.classList.toggle('invalid', invalid);
+        });
+        if (dates.nascimento && dates.falecimento && dates.falecimento < dates.nascimento) {
+          formFalecimento.classList.add('invalid');
+          messages.push('O falecimento não pode ser antes do nascimento.');
+        }
+        if (errorEl) {
+          errorEl.textContent = messages.join(' ');
+          errorEl.hidden = messages.length === 0;
+        }
       }
 
       function applyDateMask(inputEl) {
@@ -680,25 +1111,18 @@
       }
 
       function applyDefaultLayout() {
-        ['elFrase', 'elNome', 'elNascimento', 'elFalecimento'].forEach(function (id) {
-          var el = document.getElementById(id);
-          if (el) el.style.cssText = '';
-        });
-        if (fraseWidthInput) { fraseWidthInput.value = 20; if (fraseWidthValueEl) fraseWidthValueEl.textContent = '20%'; }
-        if (nomeWidthInput) { nomeWidthInput.value = 44; if (nomeWidthValueEl) nomeWidthValueEl.textContent = '44%'; }
-        applyFraseWidth();
-        applyNomeWidth();
+        applyLayoutFromObject(currentLayout().defaults);
       }
 
       function applyLayoutFromObject(layout) {
         if (!layout) return;
         if (layout.fraseWidth != null && fraseWidthInput) {
-          fraseWidthInput.value = Math.max(14, Math.min(32, layout.fraseWidth));
+          fraseWidthInput.value = clampWidth(layout.fraseWidth, 20);
           if (fraseWidthValueEl) fraseWidthValueEl.textContent = fraseWidthInput.value + '%';
           applyFraseWidth();
         }
         if (layout.nomeWidth != null && nomeWidthInput) {
-          nomeWidthInput.value = Math.max(20, Math.min(55, layout.nomeWidth));
+          nomeWidthInput.value = clampWidth(layout.nomeWidth, 44);
           if (nomeWidthValueEl) nomeWidthValueEl.textContent = nomeWidthInput.value + '%';
           applyNomeWidth();
         }
@@ -710,25 +1134,125 @@
 
       function applyDefaultLayoutFromStorage() {
         try {
-          var raw = localStorage.getItem(DEFAULT_LAYOUT_KEY);
+          var raw = localStorage.getItem(currentLayout().storageKey);
           if (!raw) return false;
           applyLayoutFromObject(JSON.parse(raw));
           return true;
         } catch (e) { return false; }
       }
 
+      function getTextStyle(id) {
+        var s = currentLayout().text[id] || {};
+        return {
+          size: s.size || 14,
+          minSize: s.minSize || 0,
+          color: s.color || '#ffffff',
+          align: s.align || 'left',
+          style: s.style || 'normal',
+          weight: s.weight || 'normal',
+          family: s.family || DEFAULT_TEXT_FAMILY
+        };
+      }
+
+      function applyTextStyles() {
+        TEXT_IDS.forEach(function (id) {
+          var el = document.getElementById(id);
+          var text = el && el.querySelector('.preview-text');
+          if (!text) return;
+          var s = getTextStyle(id);
+          text.style.fontSize = s.size + 'px';
+          text.style.color = s.color;
+          text.style.textAlign = s.align;
+          text.style.fontStyle = s.style;
+          text.style.fontWeight = s.weight;
+          text.style.fontFamily = s.family;
+        });
+        fitTexts();
+      }
+
+      function fitTexts() {
+        TEXT_IDS.forEach(function (id) {
+          var el = document.getElementById(id);
+          var text = el && el.querySelector('.preview-text');
+          if (!text) return;
+          var s = getTextStyle(id);
+          text.style.fontSize = s.size + 'px';
+          text.style.whiteSpace = s.minSize ? 'nowrap' : '';
+          if (!s.minSize) return;
+          var size = s.size;
+          while (size > s.minSize && text.scrollWidth > text.clientWidth) {
+            size -= 0.5;
+            text.style.fontSize = size + 'px';
+          }
+          if (text.scrollWidth > text.clientWidth) text.style.whiteSpace = '';
+        });
+      }
+
+      var layoutLoadToken = 0;
+      function loadLayoutPositions() {
+        var token = ++layoutLoadToken;
+        var layout = currentLayout();
+        applyDefaultLayout();
+        return fetch(layout.layoutFile, { cache: 'no-cache' }).then(function (r) {
+          return r.ok ? r.json() : Promise.reject();
+        }).then(function (data) {
+          if (token === layoutLoadToken) applyLayoutFromObject(data);
+        }).catch(function () {
+          if (token === layoutLoadToken) applyDefaultLayoutFromStorage();
+        }).then(fitTexts);
+      }
+
+      function renderLayoutOptions() {
+        var wrap = document.getElementById('layoutOptions');
+        if (!wrap) return;
+        wrap.innerHTML = '';
+        Object.keys(LAYOUTS).forEach(function (id) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'layout-option' + (id === currentLayoutId ? ' active' : '');
+          btn.dataset.layout = id;
+          btn.setAttribute('role', 'radio');
+          btn.setAttribute('aria-checked', id === currentLayoutId ? 'true' : 'false');
+          var img = document.createElement('img');
+          img.src = LAYOUTS[id].template;
+          img.alt = '';
+          var span = document.createElement('span');
+          span.textContent = LAYOUTS[id].label;
+          btn.appendChild(img);
+          btn.appendChild(span);
+          btn.addEventListener('click', function () { setLayout(id); });
+          wrap.appendChild(btn);
+        });
+      }
+
+      function setLayout(id, skipPersist) {
+        if (!LAYOUTS[id]) id = 'classico';
+        var changed = id !== currentLayoutId;
+        currentLayoutId = id;
+        document.querySelectorAll('.layout-option').forEach(function (btn) {
+          btn.classList.toggle('active', btn.dataset.layout === id);
+          btn.setAttribute('aria-checked', btn.dataset.layout === id ? 'true' : 'false');
+        });
+        applyTextStyles();
+        if (changed && templateImgEl) {
+          photoPanX = 0;
+          photoPanY = 0;
+          templateImgEl.src = currentLayout().template;
+        }
+        var p = loadLayoutPositions();
+        if (!skipPersist) p.then(persistState);
+        return p;
+      }
+
       function loadState() {
         function applyFormDataOnly(state) {
           if (!state) return;
-          if (state.photo) {
-            photoImg.src = state.photo;
-            photoImg.style.display = 'block';
-            photoPlaceholder.style.display = 'none';
-          }
+          if (state.photo) setPhotoSrc(state.photo);
           if (state.frase != null && formFrase) formFrase.value = (state.frase + '').replace(/\d/g, '').slice(0, PHRASE_LIMIT);
           if (state.nome != null && formNome) formNome.value = (state.nome + '').replace(/\d/g, '').slice(0, NOME_LIMIT);
           if (state.nascimento != null && formNascimento) { formNascimento.value = state.nascimento; applyDateMask(formNascimento); }
           if (state.falecimento != null && formFalecimento) { formFalecimento.value = state.falecimento; applyDateMask(formFalecimento); }
+          validateDates(false);
           syncFormToPreview();
           if (state.photoZoom != null) {
             photoZoom = Math.max(1, parseFloat(state.photoZoom) || 1);
@@ -740,36 +1264,14 @@
           updateCharCount();
           updateNomeCharCount();
         }
+        var state = null;
         try {
           var raw = localStorage.getItem(STORAGE_KEY);
-          var state = raw ? JSON.parse(raw) : null;
-          fetch('default-layout.json').then(function (r) { return r.ok ? r.json() : Promise.reject(); }).then(function (layout) {
-            applyLayoutFromObject(layout);
-            applyFormDataOnly(state);
-          }).catch(function () {
-            if (state) {
-              if (state.fraseWidth != null && fraseWidthInput) {
-                fraseWidthInput.value = Math.max(14, Math.min(32, state.fraseWidth));
-                if (fraseWidthValueEl) fraseWidthValueEl.textContent = fraseWidthInput.value + '%';
-              }
-              if (state.nomeWidth != null && nomeWidthInput) {
-                nomeWidthInput.value = Math.max(20, Math.min(55, state.nomeWidth));
-                if (nomeWidthValueEl) nomeWidthValueEl.textContent = nomeWidthInput.value + '%';
-              }
-              if (state.elFrase) setElRect('elFrase', state.elFrase);
-              if (state.fraseWidth != null) applyFraseWidth();
-              if (state.elNome) setElRect('elNome', state.elNome);
-              if (state.nomeWidth != null) applyNomeWidth();
-              if (state.elNascimento) setElRect('elNascimento', state.elNascimento);
-              if (state.elFalecimento) setElRect('elFalecimento', state.elFalecimento);
-            } else if (!applyDefaultLayoutFromStorage()) {
-              applyDefaultLayout();
-            }
-            applyFormDataOnly(state);
-          });
-        } catch (e) {
-          applyDefaultLayout();
-        }
+          state = raw ? JSON.parse(raw) : null;
+        } catch (e) {}
+        setLayout((state && state.layout) || 'classico', true).then(function () {
+          applyFormDataOnly(state);
+        });
       }
 
       function syncFormToPreview() {
@@ -777,17 +1279,17 @@
         if (previewNome) previewNome.textContent = formNome ? formNome.value : '';
         if (previewNascimento) previewNascimento.textContent = formNascimento ? formNascimento.value : '';
         if (previewFalecimento) previewFalecimento.textContent = formFalecimento ? formFalecimento.value : '';
+        fitTexts();
       }
 
       function updateCharCount() {
-        const n = formFrase ? formFrase.value.length : 0;
-        if (charCountEl) { charCountEl.textContent = n; charCountEl.classList.toggle('at-limit', n >= PHRASE_LIMIT); }
+        setCounter(charCountEl, formFrase ? formFrase.value.length : 0, PHRASE_LIMIT);
       }
 
       if (formFrase) {
         formFrase.addEventListener('input', function () {
           var val = this.value.replace(/\d/g, '');
-          if (val !== this.value) this.value = val;
+          if (val !== this.value) { this.value = val; flashWarn('fraseWarn'); }
           updateCharCount();
           syncFormToPreview();
           persistState();
@@ -802,7 +1304,7 @@
       if (formNome) {
         formNome.addEventListener('input', function () {
           var val = this.value.replace(/\d/g, '');
-          if (val !== this.value) this.value = val;
+          if (val !== this.value) { this.value = val; flashWarn('nomeWarn'); }
           updateNomeCharCount();
           syncFormToPreview();
           persistState();
@@ -817,38 +1319,113 @@
       }
       bindDateMask(formNascimento);
       bindDateMask(formFalecimento);
-      if (formNascimento) {
-        formNascimento.addEventListener('input', function () { syncFormToPreview(); persistState(); });
-        formNascimento.addEventListener('blur', persistState);
-      }
-      if (formFalecimento) {
-        formFalecimento.addEventListener('input', function () { syncFormToPreview(); persistState(); });
-        formFalecimento.addEventListener('blur', persistState);
+      [formNascimento, formFalecimento].forEach(function (input) {
+        if (!input) return;
+        input.addEventListener('input', function () { syncFormToPreview(); validateDates(false); persistState(); });
+        input.addEventListener('blur', function () { validateDates(true); persistState(); });
+      });
+
+      const photoTools = document.getElementById('photoTools');
+      const photoDrop = document.getElementById('photoDrop');
+      const photoThumb = document.getElementById('photoThumb');
+      const photoDropTitle = document.getElementById('photoDropTitle');
+      const photoDropSub = document.getElementById('photoDropSub');
+
+      function updatePhotoPanel(fileName) {
+        var has = !!(photoImg && photoImg.getAttribute('src'));
+        if (photoTools) photoTools.hidden = !has;
+        if (photoThumb) {
+          photoThumb.innerHTML = '';
+          if (has) {
+            var t = document.createElement('img');
+            t.src = photoImg.src;
+            t.alt = '';
+            photoThumb.appendChild(t);
+          } else {
+            photoThumb.innerHTML = '&#128247;';
+          }
+        }
+        if (photoDropTitle) photoDropTitle.textContent = has ? (fileName || 'Foto adicionada') : 'Escolher foto';
+        if (photoDropSub) photoDropSub.textContent = has ? 'Clique ou arraste outra imagem para trocar' : 'Clique ou arraste uma imagem aqui';
       }
 
-      photoInput.addEventListener('change', function () {
-        const file = this.files && this.files[0];
-        if (!file || !file.type.startsWith('image/')) return;
+      function setPhotoZoom(z) {
+        photoZoom = Math.max(1, Math.min(2, Math.round(z * 100) / 100));
+        if (photoZoomInput) photoZoomInput.value = photoZoom;
+        if (photoZoomValueEl) photoZoomValueEl.textContent = Math.round(photoZoom * 100) + '%';
+        applyPhotoZoomPan();
+      }
+
+      function setPhotoSrc(src, fileName) {
+        photoImg.src = src;
+        photoImg.style.display = 'block';
+        photoPlaceholder.style.display = 'none';
+        photoWrap.classList.add('has-photo');
+        updatePhotoPanel(fileName);
+      }
+
+      function loadPhotoFile(file) {
+        if (!file || !file.type || file.type.indexOf('image/') !== 0) return;
         const reader = new FileReader();
         reader.onload = function () {
-          photoImg.src = reader.result;
-          photoImg.style.display = 'block';
-          photoPlaceholder.style.display = 'none';
+          photoPanX = 0;
+          photoPanY = 0;
+          setPhotoZoom(1);
+          setPhotoSrc(reader.result, file.name);
           applyPhotoZoomPan();
           persistState();
         };
         reader.readAsDataURL(file);
+      }
+
+      function removePhoto() {
+        photoImg.removeAttribute('src');
+        photoImg.style.display = 'none';
+        photoPlaceholder.style.display = '';
+        photoWrap.classList.remove('has-photo');
+        if (photoInput) photoInput.value = '';
+        photoPanX = 0;
+        photoPanY = 0;
+        setPhotoZoom(1);
+        updatePhotoPanel();
+        persistState();
+      }
+
+      photoInput.addEventListener('change', function () {
+        loadPhotoFile(this.files && this.files[0]);
       });
+
+      if (photoDrop) {
+        photoDrop.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); photoInput.click(); }
+        });
+        ['dragenter', 'dragover'].forEach(function (type) {
+          photoDrop.addEventListener(type, function (e) { e.preventDefault(); photoDrop.classList.add('dragover'); });
+        });
+        ['dragleave', 'drop'].forEach(function (type) {
+          photoDrop.addEventListener(type, function () { photoDrop.classList.remove('dragover'); });
+        });
+        photoDrop.addEventListener('drop', function (e) {
+          e.preventDefault();
+          loadPhotoFile(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]);
+        });
+      }
 
       if (photoZoomInput) {
         photoZoomInput.addEventListener('input', function () {
-          photoZoom = Math.max(1, parseFloat(this.value) || 1);
-          this.value = photoZoom;
-          photoZoomValueEl.textContent = Math.round(photoZoom * 100) + '%';
-          applyPhotoZoomPan();
+          setPhotoZoom(parseFloat(this.value) || 1);
           persistState();
         });
       }
+      document.getElementById('btnZoomOut').addEventListener('click', function () { setPhotoZoom(photoZoom - 0.1); persistState(); });
+      document.getElementById('btnZoomIn').addEventListener('click', function () { setPhotoZoom(photoZoom + 0.1); persistState(); });
+      document.getElementById('btnPhotoReset').addEventListener('click', function () {
+        photoPanX = 0;
+        photoPanY = 0;
+        setPhotoZoom(1);
+        persistState();
+      });
+      document.getElementById('btnPhotoRemove').addEventListener('click', removePhoto);
 
       if (photoDragOverlay) {
         var dragStartX, dragStartY, dragStartPanX, dragStartPanY;
@@ -867,7 +1444,7 @@
           persistState();
         }
         photoDragOverlay.addEventListener('mousedown', function (e) {
-          if (photoZoom <= 1) return;
+          if (!canPanPhoto()) return;
           e.preventDefault();
           dragStartX = e.clientX;
           dragStartY = e.clientY;
@@ -877,7 +1454,7 @@
           document.addEventListener('mouseup', onPanEnd);
         });
         photoDragOverlay.addEventListener('touchstart', function (e) {
-          if (photoZoom <= 1 || !e.touches || !e.touches[0]) return;
+          if (!canPanPhoto() || !e.touches || !e.touches[0]) return;
           e.preventDefault();
           dragStartX = e.touches[0].clientX;
           dragStartY = e.touches[0].clientY;
@@ -927,7 +1504,7 @@
         el.addEventListener('touchstart', start, { passive: false });
       }
 
-      ['elFrase', 'elNome', 'elNascimento', 'elFalecimento'].forEach(function (id) {
+      TEXT_IDS.forEach(function (id) {
         const el = document.getElementById(id);
         if (el) makeDraggable(el, persistState);
       });
@@ -941,24 +1518,38 @@
       }
       if (btnDownloadLayout) {
         btnDownloadLayout.addEventListener('click', function () {
-          var layout = {
-            elFrase: getElRect('elFrase'),
-            elNome: getElRect('elNome'),
-            elNascimento: getElRect('elNascimento'),
-            elFalecimento: getElRect('elFalecimento'),
-            fraseWidth: fraseWidthInput ? parseInt(fraseWidthInput.value, 10) : 20,
-            nomeWidth: nomeWidthInput ? parseInt(nomeWidthInput.value, 10) : 44
-          };
-          var blob = new Blob([JSON.stringify(layout, null, 2)], { type: 'application/json' });
+          var blob = new Blob([JSON.stringify(getCurrentPositions(), null, 2)], { type: 'application/json' });
           var a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
-          a.download = 'default-layout.json';
+          a.download = currentLayout().layoutFile;
           a.click();
           URL.revokeObjectURL(a.href);
         });
       }
 
+      const btnExportLabel = document.getElementById('btnExportLabel');
+      const exportStatus = document.getElementById('exportStatus');
+      var exportStatusTimer;
+      function setExportState(state, message) {
+        btnExport.disabled = state === 'busy';
+        if (btnExportLabel) btnExportLabel.textContent = state === 'busy' ? 'Gerando imagem…' : 'Baixar imagem (PNG)';
+        if (exportStatus) {
+          exportStatus.textContent = message || '';
+          exportStatus.className = 'export-status' + (state === 'ok' ? ' ok' : state === 'error' ? ' error' : '');
+          clearTimeout(exportStatusTimer);
+          if (state === 'ok') exportStatusTimer = setTimeout(function () { exportStatus.textContent = ''; }, 4000);
+        }
+      }
+
+      function exportFileName() {
+        var slug = ((formNome && formNome.value) || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        return 'nota-falecimento' + (slug ? '-' + slug : '') + '.png';
+      }
+
       btnExport.addEventListener('click', function () {
+        if (btnExport.disabled) return;
+        setExportState('busy');
         const templateImg = document.getElementById('templateImg');
         const cw = container.offsetWidth;
         const ch = container.offsetHeight;
@@ -970,7 +1561,7 @@
         canvas.width = w;
         canvas.height = h;
         const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        if (!ctx) { setExportState('error', 'Seu navegador não permitiu gerar a imagem.'); return; }
         ctx.fillStyle = '#f5f5f0';
         ctx.fillRect(0, 0, w, h);
         function drawImage(src, sx, sy, sw, sh, dx, dy, dw, dh) {
@@ -998,87 +1589,71 @@
         const hh = h * hPct;
         const l = w * leftPct;
         const t = h * topPct;
-        function wrapText(ctx, text, maxWidth) {
-          if (!text || maxWidth <= 0) return [];
-          var words = text.trim().split(/\s+/);
-          var lines = [];
-          var line = '';
-          for (var i = 0; i < words.length; i++) {
-            var word = words[i];
-            var test = line ? line + ' ' + word : word;
-            var m = ctx.measureText(test);
-            if (m.width > maxWidth && line) {
-              lines.push(line);
-              line = word;
-              while (ctx.measureText(line).width > maxWidth) {
-                var fit = '';
-                for (var c = 0; c < line.length; c++) {
-                  if (ctx.measureText(fit + line[c]).width <= maxWidth) fit += line[c];
-                  else break;
-                }
-                lines.push(fit);
-                line = line.slice(fit.length) || '';
-              }
-            } else if (m.width > maxWidth) {
-              while (word.length) {
-                var fit = '';
-                for (var c = 0; c < word.length; c++) {
-                  if (ctx.measureText(fit + word[c]).width <= maxWidth) fit += word[c];
-                  else break;
-                }
-                lines.push(fit);
-                word = word.slice(fit.length);
-                line = word;
-              }
+        function getRenderedLines(textEl) {
+          var node = textEl && textEl.firstChild;
+          if (!node || node.nodeType !== 3) return [];
+          var text = node.textContent;
+          var range = document.createRange();
+          var groups = [];
+          var cur = null;
+          for (var i = 0; i < text.length; i++) {
+            range.setStart(node, i);
+            range.setEnd(node, i + 1);
+            var rects = range.getClientRects();
+            if (!rects.length) continue;
+            var r = rects[rects.length - 1];
+            if (!cur || r.top - cur.top > r.height / 2) {
+              cur = { start: i, end: i + 1, top: r.top };
+              groups.push(cur);
             } else {
-              line = test;
+              cur.end = i + 1;
             }
           }
-          if (line) lines.push(line);
+          var lines = [];
+          groups.forEach(function (g) {
+            while (g.start < g.end && /\s/.test(text[g.start])) g.start++;
+            while (g.end > g.start && /\s/.test(text[g.end - 1])) g.end--;
+            if (g.end <= g.start) return;
+            range.setStart(node, g.start);
+            range.setEnd(node, g.end);
+            lines.push({ text: text.slice(g.start, g.end).replace(/\s+/g, ' '), rect: range.getBoundingClientRect() });
+          });
           return lines;
         }
         function drawTexts() {
-          ctx.fillStyle = '#ffffff';
-          var fontSize = Math.round(14 * scaleX);
-          ctx.font = fontSize + 'px Georgia';
-          ctx.textBaseline = 'top';
-          var lineHeight = fontSize * 1.3;
-          const fr = document.getElementById('elFrase');
-          const nm = document.getElementById('elNome');
-          const nr = document.getElementById('elNascimento');
-          const frr = document.getElementById('elFalecimento');
-          var padLeft = 0, padTop = 0, padRight = 0;
-          if (fr) {
-            var cs = window.getComputedStyle(fr);
-            padLeft = (parseFloat(cs.paddingLeft) || 0) * scaleX;
-            padTop = (parseFloat(cs.paddingTop) || 0) * scaleY;
-            padRight = (parseFloat(cs.paddingRight) || 0) * scaleX;
-          }
-          var dy = 6 * scaleY;
-          var fraseBoxWidth = (parseFloat(fr.style.width || 20) / 100) * w - padLeft - padRight;
-          var fraseMaxWidth = Math.max(1, fraseBoxWidth * 0.88);
-          var fraseLines = wrapText(ctx, (formFrase && formFrase.value) || '', fraseMaxWidth);
-          const fl = (parseFloat(fr.style.left || 8) / 100) * w + padLeft;
-          var ft = (parseFloat(fr.style.top || 72) / 100) * h + padTop + dy;
-          fraseLines.forEach(function (line) {
-            ctx.fillText(line, fl, ft);
-            ft += lineHeight;
+          var cRect = getContainerRect();
+          ctx.textBaseline = 'middle';
+          TEXT_IDS.forEach(function (id) {
+            var el = document.getElementById(id);
+            var textEl = el && el.querySelector('.preview-text');
+            if (!textEl) return;
+            var s = getTextStyle(id);
+            var size = parseFloat(window.getComputedStyle(textEl).fontSize) || s.size;
+            ctx.font = s.style + ' ' + s.weight + ' ' + Math.round(size * scaleX) + 'px ' + s.family;
+            ctx.fillStyle = s.color;
+            getRenderedLines(textEl).forEach(function (line) {
+              var r = line.rect;
+              var y = (r.top + r.height / 2 - cRect.top) * scaleY;
+              if (s.align === 'center') {
+                ctx.textAlign = 'center';
+                ctx.fillText(line.text, (r.left + r.width / 2 - cRect.left) * scaleX, y);
+              } else if (s.align === 'right') {
+                ctx.textAlign = 'right';
+                ctx.fillText(line.text, (r.right - cRect.left) * scaleX, y);
+              } else {
+                ctx.textAlign = 'left';
+                ctx.fillText(line.text, (r.left - cRect.left) * scaleX, y);
+              }
+            });
           });
-          var nomeBoxWidth = (parseFloat(nm.style.width || 44) / 100) * w - padLeft - padRight;
-          var nomeMaxWidth = Math.max(1, nomeBoxWidth * 0.88);
-          var nomeLines = wrapText(ctx, (formNome && formNome.value) || '', nomeMaxWidth);
-          const nml = (parseFloat(nm.style.left || 28) / 100) * w + padLeft;
-          var nmt = (parseFloat(nm.style.top || 55) / 100) * h + padTop + dy;
-          nomeLines.forEach(function (line) {
-            ctx.fillText(line, nml, nmt);
-            nmt += lineHeight;
+        }
+        function loadFonts() {
+          if (!document.fonts || !document.fonts.load) return Promise.resolve();
+          var loads = TEXT_IDS.map(function (id) {
+            var s = getTextStyle(id);
+            return document.fonts.load(s.style + ' ' + s.weight + ' ' + Math.round(s.size * scaleX) + 'px ' + s.family).catch(function () {});
           });
-          const nl = (parseFloat(nr.style.left || 42) / 100) * w + padLeft;
-          const nt = (parseFloat(nr.style.top || 88) / 100) * h + padTop + dy;
-          ctx.fillText((formNascimento && formNascimento.value) || '', nl, nt);
-          const fll = (parseFloat(frr.style.left || 42) / 100) * w + padLeft;
-          const ftt = (parseFloat(frr.style.top || 93) / 100) * h + padTop + dy;
-          ctx.fillText((formFalecimento && formFalecimento.value) || '', fll, ftt);
+          return Promise.all(loads);
         }
         function run() {
           var p = Promise.resolve();
@@ -1112,20 +1687,35 @@
           }
           return p.then(function () {
             return drawImage(templateImg.currentSrc || templateImg.src, 0, 0, 0, 0, 0, 0, w, h);
-          }).then(function () {
+          }).then(loadFonts).then(function () {
             drawTexts();
           });
         }
         run().then(function () {
           const a = document.createElement('a');
-          a.download = 'nota-falecimento.png';
+          a.download = exportFileName();
           a.href = canvas.toDataURL('image/png');
           a.click();
+          setExportState('ok', 'Imagem gerada: ' + a.download);
         }).catch(function () {
-          alert('Erro ao exportar. Verifique se a imagem do template está acessível.');
+          setExportState('error', 'Não foi possível gerar a imagem. Tente novamente.');
         });
       });
 
+      ['dragover', 'drop'].forEach(function (type) {
+        window.addEventListener(type, function (e) {
+          if (!e.dataTransfer || Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') === -1) return;
+          e.preventDefault();
+          if (type === 'drop' && !(photoDrop && photoDrop.contains(e.target))) {
+            loadPhotoFile(e.dataTransfer.files && e.dataTransfer.files[0]);
+          }
+        });
+      });
+
+      window.addEventListener('resize', function () { fitTexts(); applyPhotoZoomPan(); });
+      if (photoImg) photoImg.addEventListener('load', applyPhotoZoomPan);
+      if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', fitTexts);
+      renderLayoutOptions();
       loadState();
       applyFinalizedUI();
       syncFormToPreview();

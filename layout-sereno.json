@@ -1,0 +1,24 @@
+{
+  "elFrase": {
+    "left": "12.00",
+    "top": "81.60",
+    "width": "76.00"
+  },
+  "elNome": {
+    "left": "12.00",
+    "top": "71.60",
+    "width": "76.00"
+  },
+  "elNascimento": {
+    "left": "22.50",
+    "top": "76.90",
+    "width": "27.00"
+  },
+  "elFalecimento": {
+    "left": "57.60",
+    "top": "76.90",
+    "width": "27.00"
+  },
+  "fraseWidth": 76,
+  "nomeWidth": 76
+}
